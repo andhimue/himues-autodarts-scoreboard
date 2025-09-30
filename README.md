@@ -24,12 +24,39 @@ Monitor im Browser zu laufen.
     werden, um langfristige Statistiken (Average, MPR, etc.) für alle
     Spieler – auch für Gäste – zu speichern und anzuzeigen.
 
-# <span class="header-section-number">3</span> Installation (Empfohlene Methode für Linux mit systemd)
+# <span class="header-section-number">3</span> Screenshoots
+
+Startseite:
+
+<img src="./media/image1.jpeg"
+style="width:6.48681in;height:2.66944in" />
+
+X01 in der Tabellen-Ansicht
+
+<img src="./media/image2.jpeg"
+style="width:6.55208in;height:2.39583in" />
+
+X01 mit Spieler-Kartenanzeige
+
+<img src="./media/image3.jpeg"
+style="width:6.50903in;height:2.06528in" />
+
+Cricket
+
+<img src="./media/image4.jpeg"
+style="width:6.48681in;height:2.33889in" />
+
+Around The Clock mit Zielsegment-Anzeige
+
+<img src="./media/image5.jpeg"
+style="width:6.50903in;height:2.33056in" />
+
+# <span class="header-section-number">4</span> Installation (Empfohlene Methode für Linux mit systemd)
 
 Diese Methode nutzt das beiliegende Installationsskript, das die meisten
 Schritte für Sie automatisiert.
 
-## <span class="header-section-number">3.1</span> Voraussetzungen
+## <span class="header-section-number">4.1</span> Voraussetzungen
 
 -   Ein Computer mit einem **Debian-basierten Linux** (z.B. Debian,
     Ubuntu, Raspberry Pi OS).
@@ -41,27 +68,21 @@ Schritte für Sie automatisiert.
 
 -   **Git** muss installiert sein (sudo apt install git).
 
-## <span class="header-section-number">3.2</span> Installationsschritte
+## <span class="header-section-number">4.2</span> Installationsschritte
 
 1.  **Projekt herunterladen:** Öffnen Sie ein Terminal und klonen Sie
     > das Projekt von GitHub:
 
-> Bash
->
-> git clone https://github.com/andhimue/himues-autodarts-scoreboard.git
+&gt; git clone
+https://github.com/andhimue/himues-autodarts-scoreboard.git  
+**In das Verzeichnis wechseln:**
 
-1.  **In das Verzeichnis wechseln:**
-
-> Bash
->
-> cd himues-autodarts-scoreboard
+&gt; cd himues-autodarts-scoreboard
 
 1.  **Installationsskript ausführen:** Starten Sie das Skript. Es wird
     > Sie durch den gesamten Prozess führen.
 
-> Bash
->
-> python3 install.py
+&gt; python3 install.py
 
 1.  **Den Anweisungen folgen:**
 
@@ -94,19 +115,6 @@ Am Ende der Installation zeigt Ihnen das Skript die lokalen IP-Adressen
 an, unter denen das Scoreboard im Browser erreichbar ist (z.B.
 http://192.168.1.100:6002).
 
-# <span class="header-section-number">4</span> ACHTUNG
-
-Aktuell bin ich leider nicht im Besitz der entsprechenden Schlüssel für
-die Autodarts-Keycloack-Authentifizierung. Daher kann die Anwendung
-momentan keine Verbindung zum Autodarts-Server herstellen und ist leider
-„nutzlos“  
-Wenn Sie in der glücklichen Lage sind über AUTODARTS\_CLIENT\_ID und
-AUTODARTS\_CLIENT\_SECRET zu verfügen, können Sie diese in
-backend/config.py eintragen.
-
-Ggf. muss dann noch Backend/modules/core/security\_module.template.py in
-security\_module.py umbenannt werden.
-
 # <span class="header-section-number">5</span> Manuelle Installation (Für andere Systeme oder Experten)
 
 Falls Sie kein systemd verwenden (z.B. auf Windows) oder die
@@ -126,9 +134,7 @@ Installation manuell durchführen möchten, folgen Sie diesen Schritten.
 
 2.  **Virtuelle Umgebung (venv) erstellen:**
 
-> Bash
->
-> python3 -m venv venv
+&gt; python3 -m venv venv
 
 1.  **Venv aktivieren:**
 
@@ -138,9 +144,7 @@ Installation manuell durchführen möchten, folgen Sie diesen Schritten.
 
 2.  **Python-Pakete installieren:**
 
-> Bash
->
-> pip install -r requirements.txt
+&gt; pip install -r requirements.txt
 
 1.  **Konfiguration erstellen:**
 
@@ -163,23 +167,19 @@ starten.
 
 -   **Terminal 1 (Backend):**
 
-> Bash
->
-> cd /pfad/zum/projekt/backend
->
-> source ../venv/bin/activate
->
-> ./start-prod.sh
+&gt; cd /pfad/zum/projekt/backend
+
+&gt; source ../venv/bin/activate
+
+&gt;./start-prod.sh
 
 -   **Terminal 2 (Frontend):**
 
-> Bash
->
-> cd /pfad/zum/projekt/frontend
->
-> source ../venv/bin/activate
->
-> ./start-prod.sh
+&gt; cd /pfad/zum/projekt/frontend
+
+&gt; source ../venv/bin/activate
+
+&gt;./start-prod.sh
 
 **Hinweis:** Die Dienste laufen nur, solange diese Terminals geöffnet
 sind, und starten nicht automatisch mit dem System.
