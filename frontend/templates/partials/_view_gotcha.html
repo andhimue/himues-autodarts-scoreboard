@@ -1,0 +1,35 @@
+<!--Frontend/templates/partials/_view_gotcha.html -->
+
+<div id="gotcha-view-container" style="display: none;">
+
+    <div class="player-cards-section"></div>
+
+    <table class="game-table" id="gotcha-table" style="display: none;">
+        <thead>
+            <tr>
+                <th>Spieler</th>
+                <th>Punkte</th>
+                <th>Legs</th>
+            </tr>
+        </thead>
+        <tbody>
+            </tbody>
+    </table>
+
+</div>
+
+<template id="gotcha-player-card-template">
+    <div class="player-card">
+        <div class="player-card__name"></div>
+        <div class="player-card__score"></div>
+        <div class="player-card__legs-sets"></div>
+    </div>
+</template>
+
+<template id="gotcha-table-row-template">
+    <tr>
+        <td class="game-table__cell game-table__cell--player-name"></td>
+        <td class="game-table__cell game-table__cell--score"></td>
+        <td class="game-table__cell game-table__cell--legs-sets"></td>
+    </tr>
+</template>

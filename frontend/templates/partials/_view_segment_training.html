@@ -1,0 +1,30 @@
+<!-- Frontend/templates/partials/_view_segment_training.html -->
+
+<div id="segment-training-view-container" style="display: none;">
+    <table class="game-table" id="segment-training-table">
+        <thead>
+            <tr>
+                <th>Spieler</th>
+                <th>Treffer</th>
+                <th>Darts</th>
+                <th class="game-table__header--avg-g">ø Hitrate Gesamt</th>
+                <th>Hitrate (Leg)</th>
+                <th>Hitrate (Match)</th>
+                <th>Legs</th>
+            </tr>
+        </thead>
+        <tbody></tbody>
+    </table>
+</div>
+
+<template id="segment-training-row-template">
+    <tr>
+        <td class="game-table__cell game-table__cell--player-name"></td>
+        <td class="game-table__cell game-table__cell--score"></td>
+        <td class="game-table__cell game-table__cell--darts-thrown"></td>
+        <td class="game-table__cell game-table__cell--avg-g"></td>
+        <td class="game-table__cell game-table__cell--leg-hitrate"></td>
+        <td class="game-table__cell game-table__cell--match-hitrate"></td>
+        <td class="game-table__cell game-table__cell--legs-sets"></td>
+    </tr>
+</template>

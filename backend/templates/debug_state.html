@@ -1,0 +1,37 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+    <meta charset="UTF-8">
+    <title>Himues Darts Hub - Global State</title>
+    <meta http-equiv="refresh" content="5">
+    <style>
+        body { font-family: monospace; background-color: #121212; color: #e0e0e0; padding: 20px; }
+        h1 { color: #0099ff; border-bottom: 1px solid #444; padding-bottom: 10px; }
+        table { border-collapse: collapse; width: 100%; margin-top: 20px; }
+        th, td { border: 1px solid #444; padding: 10px; text-align: left; vertical-align: top; }
+        th { background-color: #1e1e1e; color: #bb86fc; }
+        td:first-child { font-weight: bold; color: #a9b7c6; width: 25%; }
+        pre { margin: 0; white-space: pre-wrap; word-wrap: break-word; }
+    </style>
+</head>
+<body>
+    <h1>Live-Zustand der globalen Backend-Variablen (g)</h1>
+    <p>Diese Seite aktualisiert sich automatisch alle 5 Sekunden.</p>
+    <table>
+        <thead>
+            <tr>
+                <th>Variable</th>
+                <th>Aktueller Wert</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for key, value in state_data.items()|sort %}
+                <tr>
+                    <td>{{ key }}</td>
+                    <td><pre>{{ value }}</pre></td>
+                </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</body>
+</html>

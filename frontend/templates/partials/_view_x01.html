@@ -1,0 +1,46 @@
+<!--Frontend/templates/partials/_view_x01.html -->
+
+<div id="x01-view-container" style="display: none;">
+
+    <div class="player-cards-section"></div>
+
+    <table class="game-table" id="x01-table" style="display: none;">
+        <thead>
+            <tr>
+                <th>Spieler</th>
+                <th>Punkte</th>
+                <th class="game-table__header--avg-g">ø Gesamt</th>
+                <th>ø Match</th>
+                <th>ø Leg</th>
+                <th id="x01-legs-sets-header">Legs/Sets</th>
+            </tr>
+        </thead>
+        <tbody></tbody>
+    </table>
+
+</div>
+
+
+<template id="x01-player-card-template">
+    <div class="player-card">
+        <div class="player-card__name"></div>
+        <div class="player-card__score"></div>
+        <div class="player-card__legs-sets"></div>
+        <div class="player-card__averages">
+            <span class="player-card__avg-label">ø G:</span><span class="player-card__avg-value--g"></span> | 
+            <span class="player-card__avg-label">M:</span><span class="player-card__avg-value--m"></span> | 
+            <span class="player-card__avg-label">L:</span><span class="player-card__avg-value--l"></span>
+        </div>
+    </div>
+</template>
+
+<template id="x01-table-row-template">
+    <tr>
+        <td class="game-table__cell game-table__cell--player-name"></td>
+        <td class="game-table__cell game-table__cell--score"></td>
+        <td class="game-table__cell game-table__cell--avg-g"></td>
+        <td class="game-table__cell game-table__cell--avg-m"></td>
+        <td class="game-table__cell game-table__cell--avg-l"></td>
+        <td class="game-table__cell game-table__cell--legs-sets"></td>
+    </tr>
+</template>

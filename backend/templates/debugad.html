@@ -1,0 +1,128 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+    <meta charset="UTF-8">
+    <title>Himues Darts Hub - Autodarts Rohdaten</title>
+    <script src="https://cdn.socket.io/4.7.5/socket.io.min.js"></script>
+    <style>
+        /* Grundlegende Stile für die ganze Seite */
+        html, body {
+            height: 100%;
+            margin: 0;
+            overflow: hidden; /* Verhindert, dass die ganze Seite scrollt */
+            font-family: monospace;
+            background-color: #121212;
+            color: #e0e0e0;
+        }
+
+        /* Haupt-Layout mit Flexbox */
+        body {
+            display: flex;
+            flex-direction: column;
+            padding: 20px;
+            box-sizing: border-box; /* Stellt sicher, dass Padding die Höhe nicht beeinflusst */
+        }
+
+        /* Fixierter Titel */
+        h1 {
+            color: #0099ff;
+            flex-shrink: 0; /* Verhindert, dass der Titel schrumpft */
+            margin-bottom: 15px;
+            padding-bottom: 15px;
+            border-bottom: 1px solid #444;
+        }
+
+        /* Scrollbarer Log-Container */
+        #log-container {
+            flex-grow: 1; /* Nimmt den gesamten restlichen Platz ein */
+            overflow-y: auto; /* Fügt eine vertikale Scrollbar hinzu, wenn nötig */
+        }
+
+        /* Stile für die Log-Einträge (unverändert) */
+        .log-entry {
+            border-left: 3px solid #444;
+            padding-left: 15px;
+            margin-bottom: 20px;
+        }
+        .log-time {
+            color: #888;
+            font-size: 0.9em;
+        }
+        .log-title {
+            font-weight: bold;
+            color: #bb86fc;
+            font-size: 1.2em;
+        }
+        pre {
+            background-color: #1e1e1e;
+            padding: 10px;
+            border-radius: 5px;
+            white-space: pre-wrap;
+            word-wrap: break-word;
+            color: #a9b7c6;
+        }
+    </style>
+</head>
+<body>
+    <h1>Live Autodarts Server Events</h1>
+    <div id="log-container">
+        <pre>Warte auf die erste Nachricht vom Autodarts-Server...</pre>
+    </div>
+
+    <script>
+        const socket = io('/debugad', { path: '/api/socket.io' });
+        socket.on('connect', () => {
+            console.log('Verbunden mit dem Autodarts-Debug-Namespace!');
+        });
+
+        const logContainer = document.getElementById('log-container');
+
+        function addLogEntry(data) {
+            const entryDiv = document.createElement('div');
+            entryDiv.className = 'log-entry';
+            const pre = document.createElement('pre');
+            pre.textContent = JSON.stringify(data, null, 2);
+            entryDiv.appendChild(pre);
+            logContainer.appendChild(entryDiv);
+        }
+
+
+        // Handler, um eine einzelne neue Log-Nachricht hinzuzufügen
+        socket.on('log_update', function(logEntry) {
+            const entryDiv = document.createElement('div');
+            entryDiv.className = 'log-entry';
+
+            let html = `<div class="log-time">${logEntry.time}</div>`;
+            html += `<div class="log-title">${logEntry.title}</div>`;
+            if (logEntry.data) {
+                html += `<pre>${JSON.stringify(logEntry.data, null, 2)}</pre>`;
+            }
+            entryDiv.innerHTML = html;
+            logContainer.appendChild(entryDiv);
+            logContainer.scrollTop = logContainer.scrollHeight; // Auto-scroll
+        });
+
+        // Handler, um das Log komplett neu zu laden (bei Verbindungsaufbau)
+        socket.on('full_log', function(log) {
+            logContainer.innerHTML = ''; // Altes Log löschen
+            log.forEach(logEntry => {
+                const entryDiv = document.createElement('div');
+                entryDiv.className = 'log-entry';
+                let html = `<div class="log-time">${logEntry.time}</div>`;
+                html += `<div class="log-title">${logEntry.title}</div>`;
+                if (logEntry.data) {
+                    html += `<pre>${JSON.stringify(logEntry.data, null, 2)}</pre>`;
+                }
+                entryDiv.innerHTML = html;
+                logContainer.appendChild(entryDiv);
+            });
+            logContainer.scrollTop = logContainer.scrollHeight; // Auto-scroll
+        });
+
+        // Handler, um die Anzeige zu leeren (bei Match-Start)
+        socket.on('clear_log', function() {
+            logContainer.innerHTML = '';
+        });
+    </script>
+</body>
+</html>

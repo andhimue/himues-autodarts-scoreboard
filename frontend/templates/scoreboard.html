@@ -1,0 +1,123 @@
+<!-- Frontend/templates/scoreboard.html -->
+
+<!DOCTYPE html>
+<html lang="de">
+<head>
+    <meta charset="UTF-8">
+    <title>Himues-Dartscorer</title>
+    <link rel="icon" type="image/x-icon" href="/static/images/favicon.ico">
+
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+
+    <script>
+        // Die unterstützten gamemodes werden von scoreboard.py in diese Variable gespeichert
+        const SUPPORTED_GAME_MODES = [];
+        
+        // Die Entscheidung ob das Feuerwerk-Video oder firework.js genutzt werden sollen werden von scoreboard.py in diese Variable gespeichert
+        // True: Es wird das Video genutzt, False: es wird fireworks.js genutzt
+        const USE_VIDEO_FIREWORKS = {{ use_video_fireworks | tojson }};
+    </script>
+
+
+    <script src="https://code.jquery.com/jquery-3.7.1.min.js" defer></script>
+    <script src="https://cdn.socket.io/4.7.5/socket.io.min.js" defer></script>
+
+    {% if not use_video_fireworks %}
+    <script src="{{ url_for('static', filename='js/fireworks.js') }}" defer></script>
+    {% endif %}
+
+    <script src="{{ url_for('static', filename='js/utils_frontend.js') }}" defer></script>
+    <script src="{{ url_for('static', filename='js/show_segment.js') }}" defer></script>
+
+    <script src="{{ url_for('static', filename='js/spielmodi/view_x01.js') }}" defer></script>
+    <script src="{{ url_for('static', filename='js/spielmodi/view_cricket.js') }}" defer></script>
+    <script src="{{ url_for('static', filename='js/spielmodi/view_bermuda.js') }}" defer></script>
+    <script src="{{ url_for('static', filename='js/spielmodi/view_shanghai.js') }}" defer></script>
+    <script src="{{ url_for('static', filename='js/spielmodi/view_gotcha.js') }}" defer></script>
+    <script src="{{ url_for('static', filename='js/spielmodi/view_atc.js') }}" defer></script>
+    <script src="{{ url_for('static', filename='js/spielmodi/view_rtw.js') }}" defer></script>
+    <script src="{{ url_for('static', filename='js/spielmodi/view_random_checkout.js') }}" defer></script>
+    <script src="{{ url_for('static', filename='js/spielmodi/view_bull_off.js') }}" defer></script>
+    <script src="{{ url_for('static', filename='js/spielmodi/view_countup.js') }}" defer></script>
+    <script src="{{ url_for('static', filename='js/spielmodi/view_segment_training.js') }}" defer></script>
+    <script src="{{ url_for('static', filename='js/spielmodi/view_bobs27.js') }}" defer></script>
+
+    <script src="{{ url_for('static', filename='js/scoreboard_helpers.js') }}" defer></script>
+    <script src="{{ url_for('static', filename='js/scoreboard.js') }}" defer></script>
+
+</head>
+<body>
+    <canvas id="fireworks-canvas" class="fireworks-canvas"></canvas>
+        <video id="fireworks-video"
+           {% if use_video_fireworks %}
+           src="{{ url_for('static', filename='videos/fireworks.mp4') }}"
+           {% endif %}
+           class="fireworks-video" muted loop playsinline style="display: none;">
+        </video>
+        <div id="initial-view" class="initial-view">
+        <div id="initial-view__header" class="initial-view__header">
+            <h1>Himüs Autodarts Scoreboard</h1>
+            <button id="initial-view__start-button" class="initial-view__start-button">Start & Vollbild</button>
+        </div>
+        <div id="initial-view__status" class="initial-view__status">Verbinde mit Server...</div>
+        <div id="initial-view__modes" class="initial-view__modes">
+            <span id="initial-view__modes-label" class="initial-view__modes-label"></span>
+            <span id="initial-view__modes-list" class="initial-view__modes-list"></span>
+        </div>
+    </div>
+
+    <div id="main-container" class="main-container" style="display: none;">
+
+        <div id="info-area" class="info-area">
+            
+            <div id="info-area__overlay--winner" class="info-area__overlay info-area__overlay--winner" style="display: none;">
+                <div id="info-area__overlay-title" class="info-area__overlay-title"></div>
+                <div id="info-area__overlay-text" class="info-area__overlay-text"></div>
+            </div>
+
+            <div id="bust-overlay-container" class="info-area__bust-container" style="display: none;">
+                <div id="info-area__overlay--bust-left" class="info-area__overlay info-area__overlay--bust info-area__overlay--bust-left">BUST!</div>
+                <div id="info-area__overlay--bust-right" class="info-area__overlay info-area__overlay--bust info-area__overlay--bust-right">BUST!</div>
+            </div>
+
+            <div id="info-area__content" class="info-area__content">
+                
+                <div id="info-area__details" class="info-area__details">
+                    <span id="info-area__details-gamemode" class="info-area__details-gamemode"></span>
+                    <span id="info-area__details-gamerules" class="info-area__details-gamerules"></span>
+                </div>
+
+                <div id="info-area__focus" class="info-area__focus">
+                    <div class="info-area__focus-col info-area__focus-col--left">
+                        <div id="info-area__focus-player-name" class="info-area__focus-player-name"></div>
+                    </div>
+                    <div class="info-area__focus-col info-area__focus-col--center">
+                         <div id="info-area__focus-score" class="info-area__focus-score"></div>
+                         <div id="info-area__focus-score-label" class="info-area__focus-score-label"></div>
+                    </div>
+                    <div class="info-area__focus-col info-area__focus-col--right">
+                         <div id="info-area__focus-graphic" class="info-area__focus-graphic"></div>
+                    </div>
+                </div>
+
+                <div id="info-area__darts" class="info-area__darts"></div>
+            </div>
+        </div>
+    
+        <div id="game-specific-area" style="flex: 1; overflow-y: auto; min-height: 0; width: 100%;">
+            {% include 'partials/_view_x01.html' %}
+            {% include 'partials/_view_cricket.html' %}
+            {% include 'partials/_view_bermuda.html' %}
+            {% include 'partials/_view_shanghai.html' %}
+            {% include 'partials/_view_gotcha.html' %}
+            {% include 'partials/_view_atc.html' %}
+            {% include 'partials/_view_rtw.html' %}
+            {% include 'partials/_view_random_checkout.html' %}
+            {% include 'partials/_view_bull_off.html' %}
+            {% include 'partials/_view_countup.html' %}
+            {% include 'partials/_view_segment_training.html' %}
+            {% include 'partials/_view_bobs27.html' %}
+        </div>
+    </div>
+</body>
+</html>

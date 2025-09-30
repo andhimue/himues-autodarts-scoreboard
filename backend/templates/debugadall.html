@@ -1,0 +1,55 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+    <meta charset="UTF-8">
+    <title>Himues Darts Hub - Autodarts Raw Log (Alle)</title>
+    <script src="https://cdn.socket.io/4.7.5/socket.io.min.js"></script>
+    <style>
+        body { font-family: monospace; background-color: #121212; color: #e0e0e0; margin: 0; }
+        h1 { color: #bb86fc; padding: 20px; margin: 0; border-bottom: 1px solid #444; background-color: #1e1e1e; }
+        #log-container { padding: 20px; }
+        .log-entry { border-left: 3px solid #555; padding-left: 15px; margin-bottom: 20px; }
+        .log-time { color: #888; font-size: 0.9em; }
+        pre { background-color: #1e1e1e; padding: 10px; border-radius: 5px; white-space: pre-wrap; word-wrap: break-word; color: #a9b7c6; }
+    </style>
+</head>
+<body>
+    <h1>Live Autodarts Server Events (Ungefiltert)</h1>
+    <div id="log-container"></div>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            const logContainer = document.getElementById('log-container');
+            // Verbinde zum NEUEN /debugadall Namespace
+            const socket = io('/debugadall', { path: '/api/socket.io' });
+
+            const addLogEntry = (entry) => {
+                const entryDiv = document.createElement('div');
+                entryDiv.className = 'log-entry';
+                let html = `<div class="log-time">${entry.time}</div>`;
+                html += `<pre>${JSON.stringify(entry.data, null, 2)}</pre>`;
+                entryDiv.innerHTML = html;
+                logContainer.appendChild(entryDiv);
+                window.scrollTo(0, document.body.scrollHeight);
+            };
+
+            socket.on('connect', () => { console.log('Verbunden mit dem /debugadall Namespace!'); });
+
+            socket.on('full_log', (log) => {
+                logContainer.innerHTML = '';
+                if (log.length > 0) {
+                    log.forEach(addLogEntry);
+                }
+            });
+
+            socket.on('new_message', addLogEntry);
+
+            // Handler, um die Anzeige zu leeren (bei Match-Start)
+            socket.on('clear_log', function() {
+                logContainer.innerHTML = '';
+            });
+
+        });
+    </script>
+</body>
+</html>
