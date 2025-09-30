@@ -13,7 +13,7 @@ from ..autodarts.autodarts_keycloak_client import AutodartsKeycloakClient
 # --- Interne, private Variablen des Moduls ---
 _ACCESS_TOKEN = "HIER_IHR_EIGENES_TOKEN_EINFUEGEN"
 _SECRET_SERVER_URLS = [
-    "https://ihr-server1.com/get-secrets"
+    "https://ihr-server1.com/get-secrets"    "https://ihr-server2.com:9000/get-secrets"
 ]
 _keycloak_client = None
 
