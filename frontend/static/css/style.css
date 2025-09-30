@@ -1,0 +1,717 @@
+/* Frontend/static/css/style.css */
+
+/* ===================================================================
+   1. Globale Variablen & Basis-Stile
+   =================================================================== */
+
+:root {
+    /* Globale Markenfarben */
+    --primary-color: #0099ff;
+    --green-color: #28a745;
+    --info-color: #007bff;
+    --danger-color-rgb: 220, 53, 69;
+    
+    /* Globale Theme-Farben */
+    --background-primary: #1a1a1a;
+    --background-secondary: #2c2c2c;
+    --background-tertiary: #383838;
+    --text-primary: #e0e0e0;
+    --text-secondary: #bbb;
+    --text-light: #ffffff;
+    --text-dim: #888;
+    --border-color: #444;
+
+    /* Wiederverwendbare Highlight-Farbe */
+    --highlight-color: yellow;
+
+    /* NEU: Hintergrundfarben für Gewinner-Overlays */
+    --overlay-win-bg-blue: rgba(37, 103, 159, 1.0);  /* Das ursprüngliche Blau */
+    --overlay-win-bg-gray: rgba(60, 60, 60, 1.0);     /* Der neue graue Standard */
+    --overlay-tie-bg: rgba(0, 123, 255, 1.0);      /* Das Blau für Unentschieden */
+}
+
+html {
+    font-size: 1.4vmin;
+}
+
+@media (min-width: 2200px) { html { font-size: 17.6px; } }
+@media (max-width: 1200px) { html { font-size: 15px; } }
+
+body {
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+    background-color: var(--background-primary);
+    color: var(--text-primary);
+    margin: 0;
+    padding: 2rem;
+    overflow: hidden;
+    box-sizing: border-box;
+}
+
+/* ===================================================================
+   2. Keyframe-Animationen
+   =================================================================== */
+
+@keyframes rainbow-scroll {
+    to {
+        background-position: 200% center;
+    }
+}
+
+@keyframes blinkSegment {
+    0% { stroke: yellow; stroke-width: 3; }
+    50% { stroke: transparent; stroke-width: 0.5; }
+    100% { stroke: yellow; stroke-width: 3; }
+}
+
+@keyframes blink-fill {
+    0%   { opacity: 0.7; }
+    50%  { opacity: 0; }
+    100% { opacity: 0.7; }
+}
+
+.blinking-overlay {
+    pointer-events: none; 
+    animation: blink-fill 1.5s infinite ease-in-out;
+}
+
+/* ===================================================================
+   3. Globale Layout-Container
+   =================================================================== */
+
+.main-container {
+    display: flex;
+    flex-direction: column;
+    height: calc(100vh - 4rem);
+}
+
+.initial-view {
+    position: fixed;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 4rem;
+    width: 100%;
+}
+
+.game-specific-area {
+    flex: 1;
+    overflow-y: auto;
+    min-height: 0;
+    width: 100%;
+}
+
+/* ===================================================================
+   4. Start- & End-Overlays
+   =================================================================== */
+
+.initial-view__header {
+    width: auto; 
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    z-index: 100;
+}
+
+.initial-view__header h1 {
+    font-size: 6.5em;
+    font-weight: bold;
+    text-align: center;
+    margin-bottom: 20px;
+    background: linear-gradient(to right, 
+        hsl(0, 100%, 50%), hsl(60, 100%, 50%), hsl(120, 100%, 50%), 
+        hsl(180, 100%, 50%), hsl(240, 100%, 50%), hsl(300, 100%, 50%), 
+        hsl(360, 100%, 50%)
+    );
+    background-size: 200% auto;
+    -webkit-background-clip: text;
+    background-clip: text;
+    color: transparent;
+    -webkit-animation: rainbow-scroll 10s linear infinite;
+    animation: rainbow-scroll 10s linear infinite;
+    text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.3);
+}
+
+.initial-view__start-button {
+    font-size: 1.5rem;
+    padding: 1.5rem 3rem;
+    margin-top: 2rem;
+    border: 0.2rem solid var(--primary-color);
+    background-color: transparent;
+    color: var(--primary-color);
+    border-radius: 0.8rem;
+    cursor: pointer;
+    transition: all 0.2s ease-in-out;
+}
+
+.initial-view__start-button:hover {
+    background-color: var(--primary-color);
+    color: var(--text-light);
+}
+
+.info-area__overlay {
+    position: absolute;
+    z-index: 22;
+    pointer-events: none;
+}
+
+.info-area__overlay--winner {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    /* Verwende die neue Variable für den Standard-Hintergrund (Match) */
+    background-color: var(--overlay-win-bg-gray);
+    border-radius: 1.2rem;
+    z-index: 20;
+    text-align: center;
+}
+
+/* Hintergrund für Unentschieden */
+.info-area__overlay--winner.tie-bg {
+    background-color: var(--overlay-tie-bg);
+}
+
+.info-area__overlay--winner.tie-bg .info-area__overlay-title {
+    color: #ffffff;
+}
+
+.info-area__overlay-title {
+    font-size: 5rem;
+    font-weight: bold;
+}
+
+.winner-name {
+    color: var(--highlight-color, yellow);
+    background-color: rgba(0, 0, 0, 0.2);
+    padding: 0.2rem 0.8rem;
+    border-radius: 0.5rem;
+    font-weight: bold;
+    text-transform: capitalize;
+}
+
+/* Stile für die Gewinner-Anzeige Texte */
+#info-area__overlay-text {
+    font-size: 4rem;
+    font-weight: bold;
+    color: var(--text-light); /* Standardfarbe ist weiß */
+}
+
+#info-area__overlay-text.win-type--leg {
+    color: var(--green-color);
+}
+
+#info-area__overlay-text.win-type--set {
+    color: var(--info-color);
+}
+
+#info-area__overlay-text.win-type--bull {
+    color: var(--info-color);
+}
+
+#info-area__overlay-text.win-type--match {
+    background: linear-gradient(to right, 
+        hsl(0, 100%, 50%), hsl(60, 100%, 50%), hsl(120, 100%, 50%), 
+        hsl(180, 100%, 50%), hsl(240, 100%, 50%), hsl(300, 100%, 50%), 
+        hsl(360, 100%, 50%)
+    );
+    background-size: 200% auto;
+    -webkit-background-clip: text;
+    background-clip: text;
+    color: transparent;
+    -webkit-animation: rainbow-scroll 10s linear infinite;
+    animation: rainbow-scroll 10s linear infinite;
+}
+
+.info-area__overlay--bust {
+    top: 2rem;
+    font-size: 10rem;
+    font-weight: bold;
+    color: rgba(var(--danger-color-rgb), 0.8);
+    text-shadow: 0.2rem 0.2rem 0.4rem rgba(0,0,0,0.5);
+    background-color: var(--background-tertiary);
+    padding: 0.5rem 1.5rem;
+    border-radius: 1rem;
+    z-index: 55;
+}
+
+.info-area__overlay--bust-left { left: 4rem; }
+.info-area__overlay--bust-right { right: 4rem; }
+
+.fireworks-video, .fireworks-canvas {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    pointer-events: none;
+    z-index: 23;
+}
+
+/* ===================================================================
+   5. Fokus-Bereich (Aktueller Spieler)
+   =================================================================== */
+
+.info-area {
+    background-color: var(--background-secondary);
+    border-radius: 1.2rem;
+    padding: 1.5rem;
+    box-shadow: 0 0.4rem 1.2rem rgba(0,0,0,0.4);
+    z-index: 10;
+    position: relative;
+    margin-bottom: 2rem;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    min-height: 33.5%;
+}
+
+.info-area__content {
+    width: 70%;
+}
+
+.info-area__focus {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 100%;
+    gap: 2rem;
+}
+
+.info-area__focus-col {
+    flex: 1;
+}
+
+.info-area__focus-col--center {
+    flex: 0 0 auto;
+    text-transform: capitalize;
+}
+
+.info-area__focus-col--right {
+    display: flex;
+    justify-content: flex-start;
+    align-items: center;
+}
+
+.info-area__focus-player-name {
+    font-size: 5rem;
+    font-weight: bold;
+    text-transform: capitalize;
+}
+
+.info-area__focus-score {
+    font-size: 8rem;
+    font-weight: bold;
+    color: var(--primary-color);
+    padding-bottom: 1.6rem;
+    text-align: center;
+}
+
+.info-area__darts {
+    display: flex;
+    justify-content: center;
+    min-height: auto;
+    align-items: center;
+    margin-top: 1rem;
+}
+
+.dart {
+    border: 0.1rem solid var(--border-color);
+    padding: 1rem;
+    border-radius: 0.8rem;
+    width: 15rem;
+    height: 7rem;
+    background-color: var(--background-tertiary);
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    margin-left: 0.75rem;
+    margin-right: 0.75rem;
+}
+
+.dart-value {
+    color: #ccc;
+    font-weight: bold;
+    font-size: 5rem;
+}
+
+.dart-thrown {
+    background-color: rgba(var(--primary-color-rgb, 0, 153, 255), 0.15);
+    border-color: var(--primary-color);
+}
+
+.dart-checkout-guide .dart-value {
+    font-style: italic;
+    opacity: 0.7;
+}
+
+.checkout-guide-arrow {
+    height: 80%;
+    width: 80%;
+}
+
+/* ===================================================================
+   6. Komponenten-spezifische Stile & Variablen
+   =================================================================== */
+
+.info-area__focus-graphic {
+    width: 12rem;
+    height: 12rem;
+    overflow: hidden;
+    padding-left: 2rem;
+    /* Deine lokalen Variablen */
+    --segment-draw-size: 200;
+    --double-ring-radius: 86.25;
+    --triple-ring-radius: 49.75;
+    --ring-stroke-width: 10.5;
+    --bull-radius: 17;
+    --bullseye-radius: 8;
+    --segment-color-red-dt: #c02d3d;
+    --segment-color-red-s: #202020;
+    --segment-color-green-dt: #28a745;
+    --segment-color-green-s: #f0f0f0;
+    --bull-color-outer: #28a745;
+    --bull-color-inner: #c02d3d;
+}
+
+.info-area__focus-graphic svg {
+    width: 100%;
+    height: 100%;
+}
+
+.player-cards-section {
+    flex: 1;
+    overflow-y: auto;
+    min-height: 0;
+    display: flex;
+    justify-content: center;
+    flex-wrap: wrap;
+    gap: 2rem;
+    align-content: flex-start;
+    padding: 0.5rem 0;
+}
+
+.player-card {
+    background-color: var(--background-secondary);
+    padding-bottom: 0.5rem;
+    padding-left: 1rem;
+    padding-right: 1rem;
+    border-radius: 0.8rem;
+    min-width: 18rem;
+    max-width: 18rem;
+    box-shadow: 0 0.2rem 0.8rem rgba(0,0,0,0.3);
+    text-align: center;
+    border: 0.2rem solid transparent;
+    z-index: 10;
+}
+
+.player-card__name {
+    font-size: 3rem;
+    font-weight: bold;
+    color: var(--text-secondary);
+    text-transform: capitalize;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.player-card__points {
+    font-size: 3rem;
+    color: var(--primary-color);
+}
+
+.player-card__averages {
+    font-size: 1.6rem;
+    color: #999;
+}
+
+.player-card__avg-label {
+    font-weight: bold;
+    color: var(--text-light);
+}
+
+.player-card--is-active {
+    border-color: var(--primary-color);
+    transform: scale(1.05);
+    box-shadow: 0 0.4rem 1.5rem rgba(var(--primary-color-rgb, 0, 153, 255), 0.2);
+}
+
+.legs-sets-container {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    gap: 0.8rem;
+}
+
+.game-table__cell--legs-sets {
+    padding: 0;
+}
+.game-table__cell--legs-sets .legs-sets-container {
+    height: 100%;
+}
+
+.player-card .legs-sets-container {
+    margin-top: 0.8rem;
+}
+
+.player-card .legs-won,
+.player-card .sets-won {
+    font-size: 1.6rem;
+}
+
+
+/* ===================================================================
+   7. Allgemeine Tabellen-Stile
+   =================================================================== */
+
+.game-table {
+    width: 100%;
+    margin: 0 auto;
+    border-collapse: collapse;
+}
+
+.game-table th, .game-table td {
+    border: 0.2rem solid var(--border-color);
+    padding: 0.7rem 1.2rem;
+    text-align: center;
+    font-size: 2.8rem;
+    vertical-align: middle;
+}
+
+.game-table th {
+    background-color: var(--background-tertiary);
+}
+
+.game-table td:first-child {
+    text-align: left;
+}
+
+/*
+.game-table__cell--player-name {
+    font-weight: bold;
+    text-transform: capitalize;
+}
+*/
+/* ÄNDERUNG: Die Zelle für den Spielernamen ist wieder eine normale Zelle */
+.game-table__cell--player-name {
+    font-weight: bold;
+    text-transform: capitalize;
+    /* Entfernen Sie 'position: relative' und 'padding-right' von hier, falls noch vorhanden */
+}
+
+//* Die Tabellenzelle selbst benötigt kein spezielles Styling mehr. */
+/* Das Padding wird von der allgemeinen .game-table td Regel geerbt. */
+.game-table__cell--avg-g {
+    /* Inhalt wird standardmäßig zentriert */
+}
+
+/* Der neue Wrapper wird zum Flex-Container */
+.avg-cell-wrapper {
+    display: flex;
+    justify-content: center; /* Zentriert den Inhalt horizontal */
+    align-items: center;
+    position: relative; /* Dient als Anker für das Icon */
+    width: 100%;
+    height: 100%;
+}
+
+/* Das Text-Element */
+.avg-cell-text {
+    flex-grow: 1; /* Erlaubt dem Text, den gesamten Platz einzunehmen */
+    text-align: center; /* Stellt die Zentrierung sicher */
+}
+
+/* Das Icon wird absolut positioniert, um den Text nicht zu verschieben */
+.player-status-icon {
+    position: absolute;
+    right: 0; /* Positioniert das Icon am rechten Rand des Wrappers */
+    top: 50%;
+    transform: translateY(-50%);
+    width: 1.8rem;
+    height: 1.8rem;
+}
+.active-player-row {
+    background-color: rgba(var(--primary-color-rgb, 0, 153, 255), 0.25);
+    border-left: 0.5rem solid var(--primary-color);
+    box-shadow: 0 0.2rem 1rem rgba(var(--primary-color-rgb, 0, 153, 255), 0.3);
+}
+
+.active-player-row td {
+    font-weight: bold;
+    color: var(--text-light);
+}
+
+/* ===================================================================
+   8. Sonstige UI-Elemente
+   =================================================================== */
+
+.initial-view__modes {
+    position: static;
+    transform: none;
+    top: auto;
+    left: auto;
+    color: var(--text-secondary);
+    font-size: 2rem;
+    font-weight: bold;
+    z-index: 101;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 1rem;
+    background-color: rgba(44, 44, 44, 0.8);
+    padding: 1rem 2rem;
+    border-radius: 1.2rem;
+    box-shadow: 0 0.4rem 1.2rem rgba(0,0,0,0.4);
+    width: 90%;
+}
+
+
+.sets-won, .legs-won {
+    color: var(--text-light);
+    padding: 0.2rem 0.8rem;
+    border-radius: 0.5rem;
+    font-weight: bold;
+    min-width: 2rem;
+    text-align: center;
+}
+.sets-won { background-color: var(--info-color); }
+.legs-won { background-color: var(--green-color); }
+
+.cricket-table th {
+    border-bottom: 0.4rem solid #555;
+    color: var(--primary-color);
+}
+
+.cricket-hit-mark {
+    font-family: "Arial", sans-serif;
+}
+.cricket-hit-1::after { content: '/'; }
+.cricket-hit-2::after { content: 'X'; }
+.cricket-hit-3::after { content: '◎'; color: var(--primary-color); font-weight: bold; }
+
+.cricket-target-closed {
+    background-color: rgba(80, 80, 80, 0.5);
+    opacity: 0.6;
+}
+
+.info-area__details {
+    position: fixed;
+    top: 2.5rem;
+    left: 3em;
+    text-align: left;
+    z-index: 11;
+    display: none;
+}
+
+.info-area__details div {
+    margin-bottom: 1rem;
+}
+
+.info-area__details-gamemode {
+    font-size: 3rem;
+    color: var(--green-color);
+    font-weight: bold;
+     margin-left: 1rem;
+}
+
+
+.info-area__details-gamerules {
+    font-size: 2.0rem;
+    line-height: 1.4;
+    text-align: left;
+    display: table;
+    width: 100%;
+    border-spacing: 1.5rem 0.5rem;
+}
+
+.info-area__details-gamerules .setting-row {
+    display: table-row;
+}
+
+.info-area__details-gamerules .setting-label {
+    display: table-cell;
+    text-align: right;
+}
+
+.info-area__details-gamerules .setting-value {
+    display: table-cell;
+    text-align: left;
+    color: var(--green-color);
+    font-weight: bold;
+}
+
+.initial-view__status {
+    font-size: 2rem;
+    color: var(--text-dim);
+    text-align: center;
+    padding: 4rem;
+    z-index: 50;
+}
+
+.initial-view__modes-list {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(15rem, 1fr));
+    gap: 1.5rem;
+    width: 90%;
+    max-width: 120rem;
+    margin: 1.5rem auto 0 auto;
+}
+
+.game-mode-item {
+    background-color: var(--background-secondary);
+    color: var(--text-secondary);
+    padding: 0.8rem 1.5rem;
+    border-radius: 0.8rem;
+    border: 1px solid var(--border-color);
+    font-weight: bold;
+    font-size: 1.5rem;
+    white-space: nowrap;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.2);
+    text-align: center;
+}
+
+.hide-cursor {
+    cursor: none;
+}
+
+/* ===================================================================
+   9. Board-Steuerung (NEU)
+   =================================================================== */
+
+.board-controls {
+    display: flex;
+    justify-content: center;
+    gap: 1rem;
+    margin-top: 1.5rem; /* Etwas Abstand nach oben */
+}
+
+.control-button {
+    font-size: 1.5rem;
+    font-weight: bold;
+    padding: 0.8rem 1.5rem;
+    border: 2px solid var(--border-color);
+    background-color: var(--background-tertiary);
+    color: var(--text-secondary);
+    border-radius: 8px;
+    cursor: pointer;
+    transition: all 0.2s ease-in-out;
+}
+
+.control-button:hover {
+    background-color: var(--primary-color);
+    border-color: var(--primary-color);
+    color: var(--text-light);
+}
+
+.control-button:active {
+    transform: scale(0.95);
+}
