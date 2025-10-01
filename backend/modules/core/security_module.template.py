@@ -13,8 +13,7 @@ from ..autodarts.autodarts_keycloak_client import AutodartsKeycloakClient
 # --- Interne, private Variablen des Moduls ---
 _ACCESS_TOKEN = "HIER_IHR_EIGENES_TOKEN_EINFUEGEN"
 _SECRET_SERVER_URLS = [
-    "https://ihr-server1.com/get-secrets",
-    "https://ihr-server2.com:9000/get-secrets"
+    "https://ihr-server1.com/get-secrets"    "https://ihr-server2.com:9000/get-secrets"
 ]
 _keycloak_client = None
 
@@ -22,11 +21,11 @@ _keycloak_client = None
 
 # --- Interne Hilfsfunktionen ---
 def _verify_project_integrity():
-    # ... (Diese Funktion bleibt exakt gleich wie zuvor)
+    
     try:
-        expected_line = 'EVT_MATCH_STARTED="match-started"'
+        expected_line = 'HIER_EIGENEN_WERT_FUER_INTEGRITAETSPRUEFUNG_EINTRAGEN'
         current_dir = os.path.dirname(__file__)
-        target_file_path = os.path.join(current_dir, 'constants.py')
+        target_file_path = os.path.join('anonymisiert', 'anonymisiert.py')
         if not os.path.exists(target_file_path):
              print("Integritätsprüfung fehlgeschlagen. Prüfziel nicht gefunden.")
              return False
@@ -123,7 +122,7 @@ def start():
     
     # Finale Prüfung und Initialisierung
     if not all([client_id, client_secret]):
-        print("FATAL: Client-ID oder Client-Secret konnten aus keiner Quelle ermittelt werden.\n\rDas BAckend wird beendet.")
+        print("FATAL: Client-ID oder Client-Secret konnten aus keiner Quelle ermittelt werden.\n\rDas Backend wird beendet.")
         exit(1)
 
     _keycloak_client = AutodartsKeycloakClient(

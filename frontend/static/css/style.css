@@ -411,6 +411,7 @@ body {
     text-align: center;
     border: 0.2rem solid transparent;
     z-index: 10;
+    position: relative;
 }
 
 .player-card__name {
@@ -442,6 +443,21 @@ body {
     border-color: var(--primary-color);
     transform: scale(1.05);
     box-shadow: 0 0.4rem 1.5rem rgba(var(--primary-color-rgb, 0, 153, 255), 0.2);
+}
+
+/ Icon-Platzhalter für Cards */
+.player-card__status-icon {
+    position: absolute;
+    top: 0.5rem; /* Abstand vom oberen Rand */
+    right: 0.5rem; /* Abstand vom rechten Rand */
+    width: 2.2rem; /* Größe des Icons */
+    height: 2.2rem;
+    z-index: 15; /* Stellt sicher, dass es über anderen Elementen liegt */
+}
+/* Icon selbst, das innerhalb des Platzhalters eingefügt wird */
+.player-card__status-icon img {
+    width: 100%;
+    height: 100%;
 }
 
 .legs-sets-container {
