@@ -610,52 +610,109 @@ print(json.dumps(sorted(list(set(local_ips)))))
 
 def _get_local_ips_fallback():
     """
-    Ein sicherer Fallback, der die primäre IP-Adresse ermittelt,
+    Ein sicherer Fallback, der die primäre IP-Adresse über lokale Systemaufrufe ermittelt,
     falls die netifaces-Methode fehlschlägt.
     """
     local_ips = ['127.0.0.1']
     try:
-        s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
-        s.settimeout(0.1)
-        s.connect(('8.8.8.8', 80))
-        primary_ip = s.getsockname()[0]
+        # 1. Hostnamen des Systems ermitteln
+        hostname = socket.gethostname()
+        # 2. IP-Adresse für diesen Hostnamen lokal auflösen
+        primary_ip = socket.gethostbyname(hostname)
+        
         if primary_ip not in local_ips:
             local_ips.append(primary_ip)
-        s.close()
     except Exception:
+        # Fehler (z.B. Hostname kann nicht aufgelöst werden) werden ignoriert,
+        # '127.0.0.1' bleibt als Minimum erhalten.
         pass
     return sorted(local_ips)
 
 #-------------------------------------------------------------------------
+def _get_config_values(file_path):
+    """Liest spezifische Host- und Port-Werte aus einer Konfigurationsdatei."""
+    host, port, disable_https = None, None, False
+    try:
+        with open(file_path, 'r') as f:
+            content = f.read()
+            # Regex zum Suchen von FLASK_HOST oder WEBSERVER_HOST_IP
+            host_match = re.search(r'(FLASK_HOST|WEBSERVER_HOST_IP)\s*=\s*[\'"]?([^\'"]+)', content)
+            if host_match:
+                host = host_match.group(2).strip()
+            
+            # Regex zum Suchen von FLASK_PORT oder WEBSERVER_HOST_PORT
+            port_match = re.search(r'(FLASK_PORT|WEBSERVER_HOST_PORT)\s*=\s*[\'"]?(\d+)', content)
+            if port_match:
+                port = port_match.group(2).strip()
+
+            # Regex zum Suchen von HTTPS-Deaktivierung
+            https_match = re.search(r'(WEBSERVER_DISABLE_HTTPS|WEBSERVER_DISABLE_HTTPS_FRONTEND)\s*=\s*(True|False)', content)
+            if https_match:
+                disable_https = https_match.group(2).strip() == 'True'
+
+    except Exception as e:
+        print_warning(f"Fehler beim Lesen der Konfiguration aus {file_path}: {e}")
+    
+    return host, port, disable_https
+
+#-------------------------------------------------------------------------
 def print_access_info():
     """
-    Liest die Konfigurationen und gibt die Zugriffs-URLs aus.
+    Ermittelt die Host-IPs und Ports aus den Konfigurationsdateien und gibt die Zugriffs-URLs aus.
     """
     print_header("Zugriffsinformationen")
     
-    # ... (der Code zum Auslesen der Ports bleibt unverändert) ...
+    # Backend-Konfiguration laden
+    backend_config_path = os.path.join(BACKEND_DIR, "config.py")
+    backend_host, backend_port, backend_disable_https = _get_config_values(backend_config_path)
     
-    try:
-        # ... (der Code zum Auslesen der Ports bleibt unverändert) ...
+    # Frontend-Konfiguration laden
+    frontend_config_path = os.path.join(FRONTEND_DIR, "config_frontend.py")
+    frontend_host, frontend_port, frontend_disable_https = _get_config_values(frontend_config_path)
 
-        # --- ANPASSUNG START ---
-        # Ruft die neue Funktion auf, die netifaces in der venv nutzt
-        local_ips = get_local_ips_from_venv()
-        # --- ANPASSUNG ENDE ---
+    # Fallback-Werte, falls das Auslesen fehlschlägt
+    backend_host = backend_host or '0.0.0.0'
+    backend_port = backend_port or '6001'
+    frontend_host = frontend_host or '0.0.0.0'
+    frontend_port = frontend_port or '6002'
+
+    # Protokoll bestimmen
+    backend_protocol = "http" if backend_disable_https else "https"
+    frontend_protocol = "http" if frontend_disable_https else "https"
+
+    try:
+        # Ruft alle möglichen IPs ab (wird nur verwendet, wenn Host = 0.0.0.0)
+        all_local_ips = get_local_ips_from_venv()
+
+        # --- FRONTEND IP-Filter-Logik ---
+        if frontend_host == '0.0.0.0':
+            # Regel 1: Bei 0.0.0.0 werden alle IPs angezeigt
+            frontend_display_ips = all_local_ips
+        elif frontend_host == '127.0.0.1':
+            # Regel 2: Bei 127.0.0.1 wird nur diese angezeigt
+            frontend_display_ips = ['127.0.0.1']
+        else:
+            # Regel 3: Bei jeder anderen IP wird nur diese angezeigt
+            frontend_display_ips = [frontend_host]
 
         print("Das Scoreboard-Frontend sollte unter folgenden Adressen erreichbar sein:")
-        if frontend_host == '0.0.0.0':
-            for ip in local_ips:
-                print(f"  {color.GREEN}➡️  http://{ip}:{frontend_port}{color.END}")
+        for ip in frontend_display_ips:
+            print(f"  {color.GREEN}➡️  {frontend_protocol}://{ip}:{frontend_port}{color.END}")
+
+        # --- BACKEND IP-Filter-Logik ---
+        if backend_host == '0.0.0.0':
+            # Regel 1: Bei 0.0.0.0 werden alle IPs angezeigt
+            backend_display_ips = all_local_ips
+        elif backend_host == '127.0.0.1':
+            # Regel 2: Bei 127.0.0.1 wird nur diese angezeigt
+            backend_display_ips = ['127.0.0.1']
         else:
-            print(f"  {color.GREEN}➡️  http://{frontend_host}:{frontend_port}{color.END}")
+            # Regel 3: Bei jeder anderen IP wird nur diese angezeigt
+            backend_display_ips = [backend_host]
         
         print("\nDas Backend ist unter folgenden Adressen erreichbar (für Debugging):")
-        if backend_host == '0.0.0.0':
-            for ip in local_ips:
-                print(f"  {color.BLUE}➡️  https://{ip}:{backend_port}/api{color.END}")
-        else:
-            print(f"  {color.BLUE}➡️  https://{backend_host}:{backend_port}/api{color.END}")
+        for ip in backend_display_ips:
+            print(f"  {color.BLUE}➡️  {backend_protocol}://{ip}:{backend_port}/api{color.END}")
 
     except Exception as e:
         print_error(f"Fehler beim Ermitteln der Zugriffs-URLs: {e}", exit_script=False)

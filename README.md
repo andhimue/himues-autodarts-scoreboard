@@ -1,9 +1,9 @@
-# <span class="header-section-number">1</span> Himues Darts Scoreboard - Installationsanleitung
+# Himues Darts Scoreboard - Installationsanleitung
 
 Herzlich willkommen! Diese Anleitung hilft Ihnen, das **Himues Darts
 Scoreboard** auf Ihrem System zu installieren und zu konfigurieren.
 
-# <span class="header-section-number">2</span> Was ist das Himues Darts Scoreboard?
+# Was ist das Himues Darts Scoreboard?
 
 Das **Himues Darts Scoreboard** ist eine Webanwendung, die als
 alternative, großformatige Anzeige für Ihre Autodarts-Spiele dient. Sie
@@ -24,7 +24,7 @@ Monitor im Browser zu laufen.
     werden, um langfristige Statistiken (Average, MPR, etc.) für alle
     Spieler – auch für Gäste – zu speichern und anzuzeigen.
 
-# <span class="header-section-number">3</span> Screenshoots
+# Screenshoots
 
 Startseite:
 
@@ -51,12 +51,12 @@ Around The Clock mit Zielsegment-Anzeige
 <img src="./media/image5.jpeg"
 style="width:6.50903in;height:2.33056in" />
 
-# <span class="header-section-number">4</span> Installation (Empfohlene Methode für Linux mit systemd)
+# Installation (Empfohlene Methode für Linux mit systemd)
 
 Diese Methode nutzt das beiliegende Installationsskript, das die meisten
 Schritte für Sie automatisiert.
 
-## <span class="header-section-number">4.1</span> Voraussetzungen
+## Voraussetzungen
 
 -   Ein Computer mit einem **Debian-basierten Linux** (z.B. Debian,
     Ubuntu, Raspberry Pi OS).
@@ -68,7 +68,7 @@ Schritte für Sie automatisiert.
 
 -   **Git** muss installiert sein (sudo apt install git).
 
-## <span class="header-section-number">4.2</span> Installationsschritte
+## Installationsschritte
 
 1.  **Projekt herunterladen:** Öffnen Sie ein Terminal und klonen Sie
     > das Projekt von GitHub:
@@ -115,12 +115,12 @@ Am Ende der Installation zeigt Ihnen das Skript die lokalen IP-Adressen
 an, unter denen das Scoreboard im Browser erreichbar ist (z.B.
 http://192.168.1.100:6002).
 
-# <span class="header-section-number">5</span> Manuelle Installation (Für andere Systeme oder Experten)
+# Manuelle Installation (Für andere Systeme oder Experten)
 
 Falls Sie kein systemd verwenden (z.B. auf Windows) oder die
 Installation manuell durchführen möchten, folgen Sie diesen Schritten.
 
-## <span class="header-section-number">5.1</span> Voraussetzungen
+## Voraussetzungen
 
 -   Stellen Sie sicher, dass **Python 3.8+** und das dazugehörige
     venv-Modul installiert sind.
@@ -128,7 +128,7 @@ Installation manuell durchführen möchten, folgen Sie diesen Schritten.
 -   Installieren Sie bei Bedarf manuell die Entwickler-Pakete für
     MariaDB/MySQL.
 
-## <span class="header-section-number">5.2</span> Installationsschritte
+## Installationsschritte
 
 1.  **Projekt herunterladen** (siehe Schritt 2.2.1).
 
@@ -184,9 +184,9 @@ starten.
 **Hinweis:** Die Dienste laufen nur, solange diese Terminals geöffnet
 sind, und starten nicht automatisch mit dem System.
 
-# <span class="header-section-number">6</span> Konfigurationsmöglichkeiten (werden bei Nutzung des Installationsscripts aus Punkt 3 automatisch gesetzt)
+# Konfigurationsmöglichkeiten (werden bei Nutzung des Installationsscripts aus Punkt 3 automatisch gesetzt)
 
-## <span class="header-section-number">6.1</span> Speicherort
+## Speicherort
 
 Die Konfiguration wird im backend-Verzeichnis gespeichert. Das
 Installationsskript fragt Sie, ob Sie eine .env-Datei oder die
@@ -197,7 +197,7 @@ config.py-Datei verwenden möchten.
 
 -   **config.py:** Dient als Fallback und Vorlage.
 
-## <span class="header-section-number">6.2</span> Notwendige Einstellungen
+## Notwendige Einstellungen
 
 Diese Werte müssen für den Betrieb zwingend konfiguriert werden:
 
@@ -207,14 +207,14 @@ Diese Werte müssen für den Betrieb zwingend konfiguriert werden:
 
 -   AUTODARTS\_BOARD\_ID
 
-## <span class="header-section-number">6.3</span> Optionale Datenbank-Einstellungen
+## Optionale Datenbank-Einstellungen
 
 Diese Werte sind nur relevant, wenn Sie die Statistik-Funktion nutzen
 (USE\_DATABASE = True):
 
 -   DB\_HOST, DB\_PORT, DB\_USER, DB\_PASSWORD, DB\_DATABASE
 
-## <span class="header-section-number">6.4</span> Weitere Einstellungen
+## Weitere Einstellungen
 
 In der backend/config.py-Datei können Sie weitere Details anpassen:
 
@@ -226,7 +226,7 @@ In der backend/config.py-Datei können Sie weitere Details anpassen:
     maximal sein darf (in Stunden), um bei einem Neustart des Backends
     wiederhergestellt zu werden.
 
-# <span class="header-section-number">7</span> Kurzerklärung des Sicherheits-Moduls
+# Kurzerklärung des Sicherheits-Moduls
 
 Die Anwendung benötigt zur Kommunikation mit den Autodarts-Servern einen
 speziellen Satz von Schlüsseln (client\_id und client\_secret).
@@ -245,7 +245,7 @@ Für maximale Flexibilität und als Backup-Möglichkeit wurde eine
     config.py-Datei selbst eintragen, wird das Modul diese Werte
     bevorzugt verwenden und den externen Server nicht kontaktieren.
 
-# <span class="header-section-number">8</span> Gesamtdokumentation
+# Gesamtdokumentation
 
 Die Gesamtdokumentation des Projektes ist im Word-Dokument:
 Projektdokumentation Himues Darts Scoreboard Vx.x.docx zu finden

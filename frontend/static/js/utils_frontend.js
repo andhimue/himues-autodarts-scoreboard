@@ -247,13 +247,35 @@ function updateSharedFocusArea(viewModel) {
 }
 
 //------------------------------------------------------------------
+// Hilfsfunktion zum Injezieren des Icons in den Wrapper
+
+/**
+ * @summary Fügt das Owner- oder Registered-Icon in den dafür vorgesehenen Wrapper ein.
+ * Wird intern von renderGameTable aufgerufen.
+ * @param {jQuery} wrapperElement Das .avg-cell-wrapper Element.
+ * @param {object} player Das Spieler-Objekt.
+ */
+function _addPlayerStatusIcon(wrapperElement, player) {
+    let iconHtml = '';
+    if (player.player_type === 'owner') {
+        iconHtml = '<img class="player-status-icon" src="/static/images/owner.png" title="Board-Owner" />';
+    } else if (player.player_type === 'registered') {
+        iconHtml = '<img class="player-status-icon" src="/static/images/registered.png" title="Registrierter Spieler" />';
+    }
+
+    if (iconHtml) {
+        wrapperElement.append(iconHtml);
+    }
+}
+
+//------------------------------------------------------------------
 
 //Die Tabellen im unteren Bereich
 
 /**
  * @summary Rendert eine Spiel-Tabelle dynamisch. Merged eine optionale, benutzerdefinierte 
  * Konfiguration mit der Standard-Konfiguration.
- * Jede Tabelle enthält standardmäßig die Felder Spieler. Pinkte, Legs.
+ * Jede Tabelle enthält standardmäßig die Felder Spieler. Punkte, Legs.
  * das kann über den Parameter customConfig=[] dynamisch erweitert werden.
  * - Wenn man in customConfig einen Eintrag mit einem selector übergibst, der bereits in der DEFAULT_TABLE_CONFIG existiert 
  *   (z.B. .game-table__cell--score), wird der Standard-Eintrag komplett durch den neuen ersetzt.
@@ -315,11 +337,26 @@ function renderGameTable(tableOrSelector, templateSelector, players, currentPlay
         finalConfig.forEach(config => {
             const element = newRow.find(config.selector);
             if (element.length > 0) {
+                // HINZUGEFÜGT: Überprüfe, ob die Zelle Icons unterstützen soll und füge den Wrapper ein
+                const usesIcons = config.tdClass && config.tdClass.includes('avg-with-icon');
+                
+                let content = '';
                 if (config.source) {
-                    element.text(config.source(player));
+                    content = config.source(player);
                 } else if (config.html) {
-                    element.html(config.html(player));
+                    content = config.html(player);
                 }
+
+                if (usesIcons) {
+                    // Erzeuge den Wrapper für Text und Icon und füge den Text in ein separates Span ein
+                    element.html(`<div class="avg-cell-wrapper"><span class="avg-cell-text">${content}</span></div>`);
+                    // Füge das Icon hinzu, nachdem der Text im Wrapper platziert wurde
+                    _addPlayerStatusIcon(element.find('.avg-cell-wrapper'), player);
+                } else {
+                    element.html(content);
+                }
+
+
                 if (config.tdClass) {
                     element.addClass(config.tdClass);
                 }
@@ -389,6 +426,19 @@ function renderPlayerCards(containerOrSelector, templateSelector, customConfig =
             }
         });
 
+        // HINZUGEFÜGT: Logik zur Icon-Injektion in den neuen Platzhalter
+        const iconContainer = cardFragment.find('.player-card__status-icon');
+        if (iconContainer.length) {
+            let iconHtml = '';
+            if (player.player_type === 'owner') {
+                iconHtml = '<img src="/static/images/owner.png" title="Board-Owner" />';
+            } else if (player.player_type === 'registered') {
+                iconHtml = '<img src="/static/images/registered.png" title="Registrierter Spieler" />';
+            }
+            iconContainer.html(iconHtml);
+        }
+        // ENDE NEUE LOGIK
+
         // Die Hervorhebung erfolgt jetzt durch Namensvergleich.
         if (player.name === activePlayerName) {
             cardFragment.children('.player-card').addClass('player-card--is-active');
@@ -396,7 +446,6 @@ function renderPlayerCards(containerOrSelector, templateSelector, customConfig =
         containerElement.append(cardFragment);
     });
 }
-
 //------------------------------------------------------------------
 
 /**
