@@ -26,5 +26,3 @@ WEBSERVER_DISABLE_HTTPS=False
 WEBSERVER_HOST_IP = '0.0.0.0'
 WEBSERVER_HOST_PORT = 6001
 
-# Steuert die X01-Anzeige. Optionen: 'cards' (Standard) oder 'table'
-X01_DISPLAY_MODE = 'table'

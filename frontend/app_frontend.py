@@ -186,7 +186,7 @@ def index():
                 use_video = True
                 logging.info(f"✅ '{browser_name}' im User Agent erkannt. Wechsle zu Video-Feuerwerk.")
                 break
-    return render_template('scoreboard.html', game_modes=g.SUPPORTED_GAME_VARIANTS, use_video_fireworks=use_video)
+    return render_template('scoreboard.html', game_modes=g.SUPPORTED_GAME_VARIANTS, force_stable_sorting=g.FORCE_STABLE_SORTING, show_player_card=g.SHOW_PLAYER_CARD, use_video_fireworks=use_video)
 
 
 #------------------------------------------
@@ -221,7 +221,8 @@ def handle_browser_connect():
     # Prüfe, ob das Frontend bereits mit dem Backend verbunden ist.
     if g.is_backend_connected:
         # Wenn ja, sende das Event sofort an NUR DIESEN neuen Client.
-        logging.info("Backend ist bereits verbunden. Sende 'backend_connected' an neuen Client.")
+        if g.DEBUG:
+            logging.info("Backend ist bereits verbunden. Sende 'backend_connected' an neuen Client.")
         # 'to=request.sid' stellt sicher, dass nur der neue Client die Nachricht bekommt.
         g.socketio_server.emit('backend_connected', {'modes': g.SUPPORTED_GAME_VARIANTS}, to=request.sid)
     # --- ANPASSUNG ENDE ---

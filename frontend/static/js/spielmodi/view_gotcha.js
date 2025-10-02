@@ -11,9 +11,16 @@ function updateGotchaView(viewModel) {
     viewModel.details.gamemode.text = `${match.game_mode} ${match.start_score}`;
     renderFocusArea(viewModel);
 
-    let displayMode = 'table';
-    const urlParams = new URLSearchParams(window.location.search);
-    if (urlParams.has('xc')) displayMode = 'cards';
+     // Standardwert ist die TAbellenanzege
+    let displayMode = 'table'
+    // Hole den Standardwert aus der Jinja2-Konstante
+    if (typeof SHOW_PLAYER_CARD === 'undefined' || SHOW_PLAYER_CARD) displayMode = 'card';
+    
+    if (URL_PARAMS.has('xc')){
+        displayMode = 'cards';
+    } else if (URL_PARAMS.has('xt')) {
+        displayMode = 'table';
+    }
 
     if (displayMode === 'table') {
         UI.gotchaCardContainer.hide();
@@ -22,6 +29,6 @@ function updateGotchaView(viewModel) {
     } else {
         UI.gotchaTable.hide();
         UI.gotchaCardContainer.show();
-        renderPlayerCards(UI.gotchaCardContainer, '#gotcha-player-card-template');
+        renderPlayerCards(UI.gotchaCardContainer, '#gotcha-player-card-template', players, current_player_index, );
     }
 }

@@ -28,7 +28,6 @@ SUPPORTED_GAME_VARIANTS  = ['Bull-off', 'X01', 'Cricket/Tactics', "Bermuda", "Sh
 WEBSERVER_DISABLE_HTTPS  = None
 WEBSERVER_HOST_IP        = None
 WEBSERVER_HOST_PORT      = None
-X01_DISPLAY_MODE         = None #cards oder table für die Anzeige im unteren Bereich in X01 und gotcha
 
 # --- Weiteres ---
 BACKEND_DIR = None                  # Variable für den absoluten Pfad zum Backend-Verzeichnis
