@@ -6,11 +6,7 @@
  */
 const x01TableConfig = [
     // KORREKTUR: 'true' wird explizit übergeben, um die Icons zu aktivieren
-    { 
-        selector: '.game-table__cell--avg-g',       
-        html: player => createOverallAverageHtml(player, 'overall_average', true),
-        tdClass: 'avg-with-icon' 
-    },
+    { selector: '.game-table__cell--avg-g',       html: player => createOverallAverageHtml(player, 'overall_average', true) },
     { selector: '.game-table__cell--avg-m', source: player => formatAverage(player.match_average) },
     { selector: '.game-table__cell--avg-l', source: player => formatAverage(player.leg_average) }
 ];
@@ -43,9 +39,18 @@ function updateX01View(viewModel) {
     
     renderFocusArea(viewModel);
 
-    let displayMode = 'table';
-    const urlParams = new URLSearchParams(window.location.search);
-    if (urlParams.has('xc')) displayMode = 'cards';
+    // Standardwert ist die TAbellenanzege
+    let displayMode = 'table'
+    // Hole den Standardwert aus der Jinja2-Konstante
+    if (typeof SHOW_PLAYER_CARD === 'undefined' || SHOW_PLAYER_CARD) displayMode = 'card';
+    
+    if (URL_PARAMS.has('xc')){
+        displayMode = 'cards';
+    } else if (URL_PARAMS.has('xt')){
+        displayMode = 'table';
+    }
+
+console.log(displayMode)
 
     if (displayMode === 'table') {
         UI.x01CardContainer.hide();
@@ -54,7 +59,7 @@ function updateX01View(viewModel) {
     } else {
         UI.x01Table.hide();
         UI.x01CardContainer.show();
-        renderPlayerCards(UI.x01CardContainer, '#x01-player-card-template', x01CardConfig);
+        renderPlayerCards(UI.x01CardContainer, '#x01-player-card-template', players, current_player_index, x01CardConfig);
     }
 
     // Spalte für Gesamt-Average ein-/ausblenden

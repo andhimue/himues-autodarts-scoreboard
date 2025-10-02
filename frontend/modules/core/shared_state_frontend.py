@@ -12,6 +12,15 @@ DEBUG = 0
 SHOW_ONLY_FIREWORK_VIDEO = None
 BROWSER_NAMES_TO_SHOW_ONLY_VIDEO = None
 
+# Steuert die Standard-Sortierung der Spielerliste im Frontend.
+# True: Stabile Sortierung (nach display_order, wie aktuell).
+# False: Rotiertende Server-Reihenfolge (nach Index im players-Array).
+FORCE_STABLE_SORTING = True
+
+# Anzeige der Spieler als Karte oder Tabelle
+SHOW_PLAYER_CARD = False
+
+
 # --- Geteilte Applikations-Objekte (Platzhalter) ---
 # Werden von app.py beim Start befüllt.
 socketio_server         = None

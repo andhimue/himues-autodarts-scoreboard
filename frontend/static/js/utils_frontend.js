@@ -303,11 +303,30 @@ function renderGameTable(tableOrSelector, templateSelector, players, currentPlay
     // Den Namen des aktiven Spielers merken, BEVOR die Liste sortiert wird.
     const activePlayerName = (players && players.length > currentPlayerIndex) ? players[currentPlayerIndex].name : null;
 
-    // Spielerliste anhand der `display_order` aus dem Event sortieren
-    if (players && players.length > 0 && players[0].display_order !== null) {
-        players.sort((a, b) => a.display_order - b.display_order);
+    // Abhängig von der variablen in config_frontend.py oder des URL-Parameters ?sg
+    // wird entweder die stabile Sortier-Reihenfolge der Spieler über ein komplettes Game hinweg
+    // oder die Spielerreihenfolge, welche das Backend liefert genutzt.
+    //Die Spielerliste im übergebenen Datenpaket ist imemr in Server-Reihenfolge
+    
+    // 1. Hole den Standardwert aus der Jinja2-Konstante
+    let performStableSorting = (typeof FORCE_STABLE_SORTING === 'undefined' || FORCE_STABLE_SORTING);
+    
+    // 2. URL-Parameter überschreiben den Standardwert.
+    // Wir greifen auf die globale Konstante URL_PARAMS zu (deklariert in scoreboard_helpers.js).
+    if (URL_PARAMS.has('rn')) { // Server Native (keine stabile Sortierung)
+        performStableSorting = false;
+    } else if (URL_PARAMS.has('rs')) { // Stable Global (erzwingt stabile Sortierung)
+        performStableSorting = true;
     }
-
+    
+    // Bei true wird die stabile Reihenfolge verwendet, bei false die Serverreihenfolge
+    if (performStableSorting) {
+        // Spielerliste anhand der `display_order` aus dem Event sortieren
+        if (players && players.length > 0 && players[0].display_order !== null) {
+            players.sort((a, b) => a.display_order - b.display_order);
+        }
+    }
+    
     const tableElement  = (typeof tableOrSelector === 'string') 
         ? $(tableOrSelector) 
         : tableOrSelector;
@@ -381,27 +400,45 @@ function renderGameTable(tableOrSelector, templateSelector, players, currentPlay
 
 /**
  * @summary Rendert die Spieler-Karten dynamisch, basierend auf Konfigurationen.
+ *
  * @param {jQuery|string} containerOrSelector Der Ziel-Container für die Karten.
  * @param {string} templateSelector Die ID des <template>-Tags für eine Karte.
+ * @param {Array} players Die Liste der Spieler-Objekte.
+ * @param {number} currentPlayerIndex Der Index des aktiven Spielers.
  * @param {Array} [customConfig=[]] Eine optionale Konfiguration für zusätzliche Felder.
  */
  
-function renderPlayerCards(containerOrSelector, templateSelector, customConfig = []) {
+function renderPlayerCards(containerOrSelector, templateSelector, players, currentPlayerIndex, customConfig = []) {
     const containerElement = (typeof containerOrSelector === 'string') 
         ? $(containerOrSelector) 
         : containerOrSelector;
 
-    const { players, current_player_index } = appState;
-    
-    // Den Namen des aktiven Spielers merken, BEVOR die Liste sortiert wird.
-    const activePlayerName = (players && players.length > current_player_index) ? players[current_player_index].name : null;
+    const activePlayerName = (players && players.length > currentPlayerIndex) ? players[currentPlayerIndex].name : null;
 
-    // Eine lokale Kopie der Spielerliste erstellen und sortieren, um den globalen appState nicht zu verändern.
-    const sortedPlayers = [...players]; 
-    if (sortedPlayers && sortedPlayers.length > 0 && sortedPlayers[0].display_order !== null) {
-        sortedPlayers.sort((a, b) => a.display_order - b.display_order);
+    // Abhängig von der variablen in config_frontend.py oder des URL-Parameters ?sg
+    // wird entweder die stabile Sortier-Reihenfolge der Spieler über ein komplettes Game hinweg
+    // oder die Spielerreihenfolge, welche das Backend liefert genutzt.
+    //Die Spielerliste im übergebenen Datenpaket ist imemr in Server-Reihenfolge
+    
+    // 1. Hole den Standardwert aus der Jinja2-Konstante
+    let performStableSorting = (typeof FORCE_STABLE_SORTING === 'undefined' || FORCE_STABLE_SORTING);
+    
+    // 2. URL-Parameter überschreiben den Standardwert.
+    // Wir greifen auf die globale Konstante URL_PARAMS zu (deklariert in scoreboard_helpers.js).
+    if (URL_PARAMS.has('rn')) { // Server Native (keine stabile Sortierung)
+        performStableSorting = false;
+    } else if (URL_PARAMS.has('rs')) { // Stable Global (erzwingt stabile Sortierung)
+        performStableSorting = true;
     }
     
+    // Bei true wird die stabile Reihenfolge verwendet, bei false die Serverreihenfolge
+    if (performStableSorting) {
+        // Spielerliste anhand der `display_order` aus dem Event sortieren
+        if (players && players.length > 0 && players[0].display_order !== null) {
+            players.sort((a, b) => a.display_order - b.display_order);
+        }
+    }
+
     const finalConfigMap = new Map(DEFAULT_CARD_CONFIG.map(item => [item.selector, item]));
     customConfig.forEach(item => {
         finalConfigMap.set(item.selector, item);
@@ -412,7 +449,7 @@ function renderPlayerCards(containerOrSelector, templateSelector, customConfig =
     containerElement.empty();
 
     // Über die sortierte Liste iterieren
-    sortedPlayers.forEach((player) => {
+    players.forEach((player) => {
         const cardFragment = $(template).clone();
 
         finalConfig.forEach(config => {

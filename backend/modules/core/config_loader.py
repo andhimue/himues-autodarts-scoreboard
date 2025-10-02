@@ -46,8 +46,6 @@ def load_and_parse_config():
         
     g.DEBUG                           = _to_bool(                                        getattr(config, 'DEBUG', g.DEBUG))
     
-    g.X01_DISPLAY_MODE                =                                                  getattr(config, 'X01_DISPLAY_MODE', 'cards')
-
     g.WEBSERVER_DISABLE_HTTPS         = _to_bool(                                        getattr(config, 'WEBSERVER_DISABLE_HTTPS', g.WEBSERVER_DISABLE_HTTPS))
     g.WEBSERVER_HOST_IP               =                                                  getattr(config, 'WEBSERVER_HOST_IP', g.WEBSERVER_HOST_IP)
     webserver_host_port               =                                                  getattr(config, 'WEBSERVER_HOST_PORT', g.WEBSERVER_HOST_PORT)

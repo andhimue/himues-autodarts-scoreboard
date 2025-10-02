@@ -5,6 +5,11 @@
 let isDisplayActive = false;
 let fireworksInstance = null;
 
+// NEU: Globale Konstante für die URL-Parameter-Abfrage.
+// Dieses Objekt existiert nach dem initialen Laden der Seite.
+// Bei F5 oder dem Ändern eines URL-Parameters und Drücken von Return wird er aktualisiert
+const URL_PARAMS = new URLSearchParams(window.location.search);
+
 //------------------------------------------------------------------
 
 /**

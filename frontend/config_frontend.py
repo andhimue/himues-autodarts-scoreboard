@@ -24,3 +24,13 @@ SHOW_ONLY_FIREWORK_VIDEO = False
 # Eine Liste von Texten. Wenn einer davon im User Agent des Browsers
 # gefunden wird, wird ebenfalls das Video anstelle von fireworks.js verwendet.
 BROWSER_NAMES_TO_SHOW_ONLY_VIDEO = ["Tizen 5.0"]
+
+# Steuert die Standard-Sortierung der Spielerliste im Frontend.
+# True: Stabile Sortierung (nach display_order, wie aktuell).
+# False: Rotiertende Server-Reihenfolge (nach Index im players-Array).
+FORCE_STABLE_SORTING = True
+
+# Mit True werden die Spieler in X01 und Gotcha als Karte angezeigt.
+# Mit False als Tabelle
+SHOW_PLAYER_CARD = False
+

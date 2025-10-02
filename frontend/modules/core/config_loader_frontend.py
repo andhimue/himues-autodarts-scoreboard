@@ -46,5 +46,8 @@ def load_and_parse_config_frontend():
     g.DEBUG                            = _to_bool(os.getenv("DEBUG", getattr(config, 'DEBUG', 0)))
 
     g.SHOW_ONLY_FIREWORK_VIDEO         = _to_bool(os.getenv("SHOW_ONLY_FIREWORK_VIDEO", getattr(config, 'SHOW_ONLY_FIREWORK_VIDEO', False)))
+    g.FORCE_STABLE_SORTING             = _to_bool(os.getenv("FORCE_STABLE_SORTING", getattr(config, 'FORCE_STABLE_SORTING', True)))
+    g.SHOW_PLAYER_CARD                 = _to_bool(os.getenv("SHOW_PLAYER_CARD", getattr(config, 'SHOW_PLAYER_CARD', False)))
+
     # Für Listen ist getattr die beste Methode, da sie nicht einfach aus .env geladen werden können
     g.BROWSER_NAMES_TO_SHOW_ONLY_VIDEO = getattr(config, 'BROWSER_NAMES_TO_SHOW_ONLY_VIDEO', ["Tizen 5.0"])

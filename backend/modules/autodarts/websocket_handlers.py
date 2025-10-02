@@ -378,31 +378,34 @@ def _handle_matches_channel(match_event_data, websocket_connection):
         g.last_websocket_message = data
         variant = data.get(c.KEY_VARIANT)
 
+        # Schritt 1: Das Event wird wie gewohnt verarbeitet und gesendet.
+        # Das Frontend zeigt sofort "Leg Won" an.
         # Den Dispatcher nutzen um die passende Funktion zur Spielvariante aus dem Dictionary GAME_PROCESSORS zu ermitteln
         processor = GAME_PROCESSORS.get(variant)
 
         if processor:
-            
-            # Schritt 1: Prüfen, ob das Leg beendet ist, um die Statistiken zu speichern.
-            if data.get(c.STATE_GAME_FINISHED):
-                # Finde die passende Speicherfunktion im neuen Dispatcher
-                saver_function = LEG_END_HANDLERS.get(variant)
-                if saver_function:
-                    # Führe die gefundene Funktion aus, um die DB zu schreiben und den Cache zu aktualisieren
-                    saver_function(data)
-                
-                # Nach dem Speichern und der Cache-Aktualisierung wird das Event
-                # nur EINMAL erstellt, aber mit den NEUEN, korrigierten Werten
-                event_to_broadcast = processor(data)
-                broadcast(event_to_broadcast)
-
-            else:
-                # Schritt 2: Normale Wurf-Verarbeitung (Leg läuft noch)
-                event_to_broadcast = processor(data)
-                broadcast(event_to_broadcast)
+            event_to_broadcast = processor(data)
+            broadcast(event_to_broadcast)
 
         else:
             logging.info(f"WARNUNG: Unbekannter Spielmodus '%s' empfangen. Keine Aktion ausgeführt.", variant)
+
+        # Schritt 2: Prüfen, ob das Leg beendet ist, um die Statistiken zu speichern.
+        if data.get(c.STATE_GAME_FINISHED):
+            # Finde die passende Speicherfunktion im neuen Dispatcher
+            saver_function = LEG_END_HANDLERS.get(variant)
+            if saver_function:
+                # Führe die gefundene Funktion aus
+                saver_function(data)
+                
+                # --- NEU: Schritt 3 ---
+                # Nach dem Speichern und der Cache-Aktualisierung wird das Event einfach
+                # ein zweites Mal erstellt. Die `create_universal_game_event`-Funktion
+                # wird nun die neuen, korrekten Werte aus dem Cache lesen.
+                # Dadurch zeigt das Frontend sofort die korrekten Were für GEsamt-Average, PPR, Hits, etc. an
+                if processor:
+                    updated_event = processor(data)
+                    broadcast(updated_event)
 
 #----------------------------------------------------
 
