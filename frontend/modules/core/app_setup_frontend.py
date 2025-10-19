@@ -1,29 +1,33 @@
-# Frontend/modules/core/app_setup.py (mit shared_state)
+# Frontend/modules/core/app_setup_frontend.py
 
 import gevent
 import logging
 import requests
-import logging
 import sys
-import platform
 import os
+import platform
+
+# Importiere urllib3 und die spezifische Warnung
+import urllib3
+from urllib3.exceptions import InsecureRequestWarning
+
+# Unterdrücke die Warnung global für diese Anwendung
+urllib3.disable_warnings(InsecureRequestWarning)
 
 from .config_loader_frontend import load_and_parse_config_frontend
 from .utils_frontend import setup_logger
-from config_frontend import DEBUG, SERVER_ADDRESS
 
-# Importiere das neue shared_state Modul
-from . import shared_state_frontend as g
+import modules.core.shared_state_frontend as g
 
 #---------------------------------
 
 def start_darts_client():
     """
     Stellt in einer robusten Schleife die initiale Verbindung zum Backend her.
-    Diese Funktion läuft nur einmal beim Start des Frontends und gibt nicht auf.
     """
-    backend_url = f'wss://{g.SERVER_ADDRESS}'
-    api_url = f"https://{g.SERVER_ADDRESS}/api/supported-modes"
+    backend_address = f"{g.BACKEND_HOST}:{g.BACKEND_PORT}"
+    backend_url = f'wss://{backend_address}'
+    api_url = f"https://{backend_address}/api/supported-modes"
     connect_options = {
         'transports': ['websocket'],
         'socketio_path': '/api/socket.io/',
@@ -32,39 +36,19 @@ def start_darts_client():
 
     while True:
         try:
-            # Versucht nur zu verbinden, wenn noch keine Verbindung besteht.
             if not g.sio_client.connected:
                 logging.info(f"Versuche, initiale Verbindung zum Backend herzustellen: {backend_url}")
                 g.sio_client.connect(backend_url, **connect_options)
-            # Wenn die Verbindung erfolgreich war, holen wir die Spielmodi
+            
             logging.info("Verbindung erfolgreich. Rufe unterstützte Spielmodi ab...")
             response = requests.get(api_url, verify=False, timeout=5)
             response.raise_for_status()
             
-            # Die Spielmodi werden geholt
             game_modes = response.json()
             g.SUPPORTED_GAME_VARIANTS.clear()
             g.SUPPORTED_GAME_VARIANTS.extend(game_modes)
             
-            # Sende das neue Event mit den Spielmodi an alle Browser
             g.socketio_server.emit('backend_connected', {'modes': game_modes})
-
-            # Jetzt wird das Banner mit den korrekten Daten ausgegeben
-            is_gunicorn = "gunicorn" in sys.argv[0]
-            gunicorn_msg = 'RUNNING MODE: Gunicorn' if is_gunicorn else 'RUNNING MODE: Direct execution'
-
-            banner_message = f"""
-
-##################################################
-        WELCOME TO HIMUES-Scoreboard-Frontend
-##################################################
-VERSION: {g.VERSION or "nicht gesetzt"}
-RUNNING OS: {platform.system()} | {os.name} | {platform.release()}
-SUPPORTED GAME-VARIANTS: {", ".join(g.SUPPORTED_GAME_VARIANTS)}
-
-{gunicorn_msg}
-"""
-            logging.info(banner_message)
             break 
             
         except Exception as e:
@@ -74,9 +58,41 @@ SUPPORTED GAME-VARIANTS: {", ".join(g.SUPPORTED_GAME_VARIANTS)}
 
 #---------------------------------
 
-def initialize_application():
-    """Bündelt die Initialisierungslogik."""
+def init_base_app():
+    """Lädt die Konfiguration und initialisiert das Logging."""
     load_and_parse_config_frontend()
     setup_logger()
-    # Startet den Verbindungsversuch als Hintergrund-Task, damit der Server starten kann.
+
+#---------------------------------
+
+def start_network_services():
+    """Startet die ausgehenden Netzwerkverbindungen (den Client zum Backend)."""
+    is_gunicorn = "gunicorn" in sys.argv[0]
+    gunicorn_msg = 'RUNNING MODE: Gunicorn' if is_gunicorn else 'RUNNING MODE: Direct execution'
+
+    banner_message = f"""
+
+##################################################
+        WELCOME TO HIMUES-Scoreboard-Frontend
+##################################################
+VERSION: {g.VERSION or "nicht gesetzt"}
+RUNNING OS: {platform.system()} | {os.name} | {platform.release()}
+SUPPORTED GAME-VARIANTS: {", ".join(g.SUPPORTED_GAME_VARIANTS) if g.SUPPORTED_GAME_VARIANTS else "noch nicht geladen"}
+
+{gunicorn_msg}
+"""
+    logging.info(banner_message)
+    
+    # Startet den Verbindungsversuch als Hintergrund-Task
     g.socketio_server.start_background_task(target=start_darts_client)
+
+#---------------------------------
+
+def initialize_application():
+    """
+    Haupt-Initialisierungsfunktion für Gunicorn, die alles in der richtigen Reihenfolge ausführt.
+    """
+    init_base_app()
+    # Bei Gunicorn erfolgt die Zertifikatsprüfung in der gunicorn.conf.py,
+    # daher können die Netzwerkdienste direkt gestartet werden.
+    start_network_services()

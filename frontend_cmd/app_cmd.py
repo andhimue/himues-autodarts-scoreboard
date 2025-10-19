@@ -1,22 +1,22 @@
+# frontend_cmd/app_cmd.py
+
 # Der Patch MUSS die allererste Code-Zeile sein.
 import gevent.monkey
 gevent.monkey.patch_all()
 
 import os
+import sys
 import ssl
-import requests
-from flask import Flask, render_template
-from flask_socketio import SocketIO
-import socketio as sio_module
-
 from gevent.pywsgi import WSGIServer
 from geventwebsocket.handler import WebSocketHandler
 from geventwebsocket.gunicorn.workers import GeventWebSocketWorker
 
+# Importiere die App-Instanz und die Initialisierungsfunktion aus den neuen Modulen
+from modules.core.app_routes_cmd import app
+from modules.core.socketio_cmd_backend import initialize_application
 import modules.core.shared_state_cmd as g
-from modules.core.config_loader_cmd import load_and_parse_config
 
-# --- Eigene Server-Klassen (bleiben unverändert) ---
+# --- Eigene Server-Klassen zur Fehlerunterdrückung ---
 class CustomWSGIServer(WSGIServer):
     def wrap_socket_and_handle(self, client_socket, address):
         try:
@@ -27,75 +27,36 @@ class CustomWSGIServer(WSGIServer):
 class CustomGeventWebSocketWorker(GeventWebSocketWorker):
     server_class = CustomWSGIServer
 
-# --- Initialisierung ---
-load_and_parse_config()
-app = Flask(__name__)
-# Wichtig: async_mode auf 'gevent' setzen, passend zum Worker
-socketio_server = SocketIO(app, async_mode='gevent', cors_allowed_origins="*")
-
-# --- Socket.IO Client zum Backend ---
-http_session = requests.Session()
-http_session.verify = False
-sio_client = sio_module.Client(
-    http_session=http_session, logger=False, engineio_logger=False,
-    reconnection=True, reconnection_delay=5
-)
-
-# --- NEU: Gekapselte Initialisierungs-Logik ---
-def start_backend_client():
-    """Baut die Verbindung zum Haupt-Backend auf."""
-    try:
-        sio_client.connect(
-            f'wss://{g.SERVER_ADDRESS}',
-            transports=['websocket'],
-            socketio_path='/api/socket.io/'
-        )
-    except Exception as e:
-        print(f"Fehler bei initialer Backend-Verbindung (wird im Hintergrund weiter versucht): {e}")
-
-def initialize_application():
-    """Startet die Backend-Verbindung als Hintergrund-Task."""
-    socketio_server.start_background_task(target=start_backend_client)
-
-# --- Routen und Event-Handler ---
-@app.route('/')
-def cmd_page():
-    return render_template('cmd.html')
-
-@sio_client.event
-def connect():
-    print(f"✅ Erfolgreich mit dem Backend-Hub ({g.SERVER_ADDRESS}) verbunden!")
-
-@sio_client.event
-def disconnect():
-    print(f"🔌 Verbindung zum Backend-Hub ({g.SERVER_ADDRESS}) verloren!")
-
-@socketio_server.on('command')
-def forward_command_to_backend(data):
-    # Zusätzliche Sicherheitsprüfung
-    if sio_client.connected:
-        sio_client.emit('command', data)
-    else:
-        print("Befehl konnte nicht weitergeleitet werden: Keine Verbindung zum Backend.")
-
-@sio_client.on('command_response')
-def forward_response_to_browser(data):
-    socketio_server.emit('command_response', data)
-
 # --- Haupt-Ausführungsblock für direkten Start ---
 if __name__ == '__main__':
-    initialize_application() # Initialisierung auch hier aufrufen
-    ssl_args = {}
-    if not g.WEBSERVER_DISABLE_HTTPS:
-        cert_path = os.path.join('crt', 'dummy.crt')
-        key_path = os.path.join('crt', 'dummy.key')
-        if os.path.exists(cert_path) and os.path.exists(key_path):
-            ssl_args = {'certfile': cert_path, 'keyfile': key_path}
-            print(f"✅ Starte HTTPS-Server auf Port {g.FLASK_PORT}")
-        else:
-            print(f"⚠️ WARNUNG: Zertifikate nicht gefunden. Starte ungesicherten HTTP-Server.")
+    # 1. Basiskonfiguration laden
+    # ANPASSUNG: Wir rufen hier nur einen Teil der Initialisierung auf
+    from modules.core.config_loader_cmd import load_and_parse_config
+    load_and_parse_config()
 
-    print("Starte CustomWSGIServer...")
+    # 2. Zertifikate prüfen (VOR dem Start der Netzwerkdienste)
+    print("Prüfe SSL-Zertifikate...")
+    try:
+        base_dir = os.path.dirname(os.path.realpath(__file__))
+        path_to_crt = os.path.join(base_dir, g.CERT_FILE)
+        path_to_key = os.path.join(base_dir, g.KEY_FILE)
+
+        if not (os.path.exists(path_to_crt) and os.path.exists(path_to_key)):
+            print(f"FEHLER: Zertifikatsdateien nicht gefunden unter '{path_to_crt}' und '{path_to_key}'.")
+            sys.exit(1)
+        
+        print("✅ SSL-Zertifikate gefunden.")
+        ssl_args = {'certfile': path_to_crt, 'keyfile': path_to_key}
+
+    except Exception as e:
+        print(f"FEHLER beim Laden der Zertifikate: {e}")
+        sys.exit(1)
+    
+    # 3. Erst jetzt die Netzwerkdienste (und den Rest) initialisieren
+    initialize_application()
+    
+    # 4. Webserver starten
+    print(f"Starte Webserver auf https://{g.FLASK_HOST}:{g.FLASK_PORT}")
     http_server = CustomWSGIServer(
         (g.FLASK_HOST, g.FLASK_PORT), app,
         handler_class=WebSocketHandler, **ssl_args

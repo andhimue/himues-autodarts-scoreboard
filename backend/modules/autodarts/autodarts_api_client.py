@@ -2,7 +2,6 @@
 
 import requests
 import logging
-import math
 from ..core import shared_state as g
 from ..core import constants as c
 from ..core import security_module

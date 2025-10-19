@@ -58,6 +58,12 @@
             gamerules: {
                 html: '',
                 visible: true
+            },
+            // NEU: Eigene Eigenschaft für den Timer im ViewModel
+            matchDuration: {
+                text: '',
+                visible: false,
+                inGamerules: false
             }
         };
 
@@ -89,6 +95,12 @@
 
         // Zustand für Overlays
         this.isBusted = false;
+        
+        // Zustand für das Regel-Modal
+        this.rulesModal = {
+            visible: false,
+            htmlContent: ''
+        };
     }
 }
 
@@ -109,27 +121,84 @@ function createBaseViewModel() {
     // Details befüllen (mit korrekten camelCase-Namen)
     viewModel.details.gamemode.text = match.game_mode;
     
+    // KORREKTUR START: Regeln in zwei Gruppen aufteilen
     let rules = [];
     if (match.sets_to_win > 0) rules.push(`First to ${match.sets_to_win} Sets / ${match.legs_to_win} Legs`);
     else if (match.legs_to_win > 0) rules.push(`First to ${match.legs_to_win} Legs`);
     if (match.in_mode && match.in_mode !== 'Straight') rules.push(`${match.in_mode}-In`);
     if (match.out_mode && match.out_mode !== 'Straight') rules.push(`${match.out_mode}-Out`);
     if (match.max_rounds > 0) rules.push(`Runde: ${turn.current_round}/${match.max_rounds}`);
-    viewModel.details.gamerules.html = rules.join('<br>');
 
-    // Fokus-Bereich befüllen
-    if (currentPlayer) {
-        viewModel.focus.player_name.text = currentPlayer.name;
-        viewModel.focus.score.text = currentPlayer.score;
+    let singleLineRulesHtml = '';
+    let tableRulesHtml = '';
+
+    rules.forEach(rule => {
+        if (rule.includes(':')) {
+            const parts = rule.split(/:(.*)/s);
+            const label = parts[0] ? parts[0] + ':' : '';
+            const value = parts[1] ? parts[1].trim() : '';
+            tableRulesHtml += `
+                <div class="setting-row">
+                    <span class="setting-label">${label}</span>
+                    <span class="setting-value">${value}</span>
+                </div>
+            `;
+        } else {
+            singleLineRulesHtml += `<div class="gamerule-full-width">${rule}</div>`;
+        }
+    });
+
+    // Timer-Daten vorbereiten
+    let showTimer = SHOW_MATCH_DURATION;
+    if (URL_PARAMS.has('ts')) showTimer = true;
+    else if (URL_PARAMS.has('tn')) showTimer = false;
+
+    let showInRules = SHOW_DURATION_IN_GAMERULES;
+    if (URL_PARAMS.has('tl')) showInRules = true;
+    else if (URL_PARAMS.has('tr')) showInRules = false;
+
+    viewModel.details.matchDuration.visible = showTimer && match && match.created_at;
+    viewModel.details.matchDuration.inGamerules = showInRules;
+    viewModel.details.matchDuration.text = appState.matchDurationDisplay || '00:00';
+
+    let timerHtml = '';
+    if (viewModel.details.matchDuration.visible && viewModel.details.matchDuration.inGamerules) {
+        timerHtml = `
+            <div class="setting-row setting-row--timer">
+                <span class="setting-label">Dauer:</span>
+                <span class="setting-value" id="info-area__details-match-duration-rules">${viewModel.details.matchDuration.text}</span>
+            </div>
+        `;
     }
 
+    // Baue das finale HTML zusammen
+    let finalRulesHtml = singleLineRulesHtml;
+    if (tableRulesHtml || timerHtml) {
+        finalRulesHtml += `<div class="gamerules-table">${tableRulesHtml}${timerHtml}</div>`;
+    }
+    
+    viewModel.details.gamerules.html = finalRulesHtml;
+    // KORREKTUR ENDE
+
+    if (currentPlayer) {
+        viewModel.focus.score.text = currentPlayer.score;
+    }
+        
     // Darts befüllen
     viewModel.darts.turnInfo = turn || {};
     viewModel.isBusted = turn ? turn.busted : false;
 
+    // Zustand des Regel-Modals aus appState in das ViewModel übertragen
+    viewModel.rulesModal.visible = appState.rulesModalVisible || false;
+    if (viewModel.rulesModal.visible) {
+        const handler = VIEW_HANDLERS[match.game_mode];
+        if (handler) {
+            viewModel.rulesModal.htmlContent = $(handler.container).find('.game-rules-description').html() || '';
+        }
+    }
+    
     return viewModel;
 }
-
 
 //------------------------------------------------------------------
 
@@ -227,8 +296,11 @@ function updateSharedFocusArea(viewModel) {
                             viewModel.focus.score.visible;
     UI.infoArea.toggle(shouldBeVisible);
     UI.gameModeDisplay.text(viewModel.details.gamemode.text).toggle(viewModel.details.gamemode.visible);
-    UI.gameRulesDisplay.html(viewModel.details.gamerules.html).toggle(viewModel.details.gamerules.visible);
-    UI.focusPlayerName.text(viewModel.focus.player_name.text).toggle(viewModel.focus.player_name.visible);
+    
+    // Regel-Container leeren und mit dem neuen, zusammengesetzten HTML füllen
+    UI.gameRulesDisplay.html(viewModel.details.gamerules.html);
+    UI.gameRulesDisplay.toggle(viewModel.details.gamerules.visible);
+
     UI.focusScore.html(viewModel.focus.score.text).toggle(viewModel.focus.score.visible);
     UI.focusScoreLabel.text(viewModel.focus.score_label.text).toggle(viewModel.focus.score_label.visible);
     
@@ -244,27 +316,21 @@ function updateSharedFocusArea(viewModel) {
         UI.dartsDisplay.hide();
     }
 
-}
-
-//------------------------------------------------------------------
-// Hilfsfunktion zum Injezieren des Icons in den Wrapper
-
-/**
- * @summary Fügt das Owner- oder Registered-Icon in den dafür vorgesehenen Wrapper ein.
- * Wird intern von renderGameTable aufgerufen.
- * @param {jQuery} wrapperElement Das .avg-cell-wrapper Element.
- * @param {object} player Das Spieler-Objekt.
- */
-function _addPlayerStatusIcon(wrapperElement, player) {
-    let iconHtml = '';
-    if (player.player_type === 'owner') {
-        iconHtml = '<img class="player-status-icon" src="/static/images/owner.png" title="Board-Owner" />';
-    } else if (player.player_type === 'registered') {
-        iconHtml = '<img class="player-status-icon" src="/static/images/registered.png" title="Registrierter Spieler" />';
+    // Timer-Anzeige steuern (nur noch für den externen Timer)
+    const timer = viewModel.details.matchDuration;
+    if (timer.visible && !timer.inGamerules) {
+        UI.matchDuration.text(timer.text).show();
+    } else {
+        UI.matchDuration.hide();
     }
-
-    if (iconHtml) {
-        wrapperElement.append(iconHtml);
+    
+    // Rendering-Logik für das Regel-Modal
+    const modal = viewModel.rulesModal;
+    if (modal.visible) {
+        UI.rulesModalText.html(modal.htmlContent);
+        UI.rulesModalOverlay.fadeIn(200);
+    } else {
+        UI.rulesModalOverlay.fadeOut(200);
     }
 }
 
@@ -278,19 +344,19 @@ function _addPlayerStatusIcon(wrapperElement, player) {
  * Jede Tabelle enthält standardmäßig die Felder Spieler. Punkte, Legs.
  * das kann über den Parameter customConfig=[] dynamisch erweitert werden.
  * - Wenn man in customConfig einen Eintrag mit einem selector übergibst, der bereits in der DEFAULT_TABLE_CONFIG existiert 
- *   (z.B. .game-table__cell--score), wird der Standard-Eintrag komplett durch den neuen ersetzt.
+ * (z.B. .game-table__cell--score), wird der Standard-Eintrag komplett durch den neuen ersetzt.
  * - Direkt löschen kannst man ein Feld nicht, da die DEFAULT_TABLE_CONFIG immer als Basis dient. 
- *   Aber man kann den gleichen Überschreib-Mechanismus nutzen, um ein Feld leer zu lassen, indem man ihm eine leere Zeichenkette zuweist.
- *   Beispiel:
- *       Wir möchten für einen Spielmodus die Score-Spalte komplett ausblenden (bzw. leeren).
- *         const myCustomConfig = [
- *           // Überschreibe den Standard für die Score-Spalte und setze den Inhalt auf "leer"
- *           { 
- *             selector: '.game-table__cell--score', 
- *             source: player => '' // Gib immer einen leeren String zurück
- *           }
- *         ];
- *       angezeigt wird die Spalte aber trotzdem.
+ * Aber man kann den gleichen Überschreib-Mechanismus nutzen, um ein Feld leer zu lassen, indem man ihm eine leere Zeichenkette zuweist.
+ * Beispiel:
+ * Wir möchten für einen Spielmodus die Score-Spalte komplett ausblenden (bzw. leeren).
+ * const myCustomConfig = [
+ * // Überschreibe den Standard für die Score-Spalte und setze den Inhalt auf "leer"
+ * { 
+ * selector: '.game-table__cell--score', 
+ * source: player => '' // Gib immer einen leeren String zurück
+ * }
+ * ];
+ * angezeigt wird die Spalte aber trotzdem.
  *
  * @param {jQuery|string} tableOrSelector Das <table>-Element.
  * @param {string} templateSelector Die ID des <template>-Tags für eine Zeile.
@@ -366,14 +432,7 @@ function renderGameTable(tableOrSelector, templateSelector, players, currentPlay
                     content = config.html(player);
                 }
 
-                if (usesIcons) {
-                    // Erzeuge den Wrapper für Text und Icon und füge den Text in ein separates Span ein
-                    element.html(`<div class="avg-cell-wrapper"><span class="avg-cell-text">${content}</span></div>`);
-                    // Füge das Icon hinzu, nachdem der Text im Wrapper platziert wurde
-                    _addPlayerStatusIcon(element.find('.avg-cell-wrapper'), player);
-                } else {
-                    element.html(content);
-                }
+                element.html(content);
 
 
                 if (config.tdClass) {
@@ -464,6 +523,7 @@ function renderPlayerCards(containerOrSelector, templateSelector, players, curre
         });
 
         // HINZUGEFÜGT: Logik zur Icon-Injektion in den neuen Platzhalter
+/*
         const iconContainer = cardFragment.find('.player-card__status-icon');
         if (iconContainer.length) {
             let iconHtml = '';
@@ -474,6 +534,7 @@ function renderPlayerCards(containerOrSelector, templateSelector, players, curre
             }
             iconContainer.html(iconHtml);
         }
+*/
         // ENDE NEUE LOGIK
 
         // Die Hervorhebung erfolgt jetzt durch Namensvergleich.

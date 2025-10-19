@@ -73,8 +73,6 @@ def update_x01_statistic_after_leg(event_data):
         if not conn:
             return
 
-        cursor = conn.cursor(dictionary=True)
-
         try:
             match_id = event_data.get(c.KEY_ID)
             current_leg = event_data.get(c.KEY_LEG)
@@ -92,11 +90,11 @@ def update_x01_statistic_after_leg(event_data):
                     continue
 
                 stats_block = event_data.get(c.KEY_STATS, [])[i] if i < len(event_data.get(c.KEY_STATS, [])) else {}
-                player_info = get_player_data_from_db(cursor, player_name, game_mode='x01')
+                player_info = get_player_data_from_db(conn, player_name, game_mode='x01')
 
 
                 if not player_info:
-                    player_db_id = create_guest_player(cursor, player_name, game_mode='x01')
+                    player_db_id = create_guest_player(conn, player_name, game_mode='x01')
                     conn.commit()
                     if player_db_id is None: continue
                     player_info = {'id': player_db_id}
@@ -109,7 +107,7 @@ def update_x01_statistic_after_leg(event_data):
                 leg_stats = stats_block.get(c.KEY_LEG_STATS, {})
                 # Stelle sicher, dass das Leg Statistiken hat, bevor du speicherst
                 if leg_stats and leg_stats.get('dartsThrown', 0) > 0:
-                    save_leg_to_history(cursor, player_db_id, match_id, current_leg, leg_stats, game_mode='x01')
+                    save_leg_to_history(conn, player_db_id, match_id, current_leg, leg_stats, game_mode='x01')
 
                 if is_registered_user:
                     # Der Spieler ist registriert oder der Board-Owner
@@ -119,7 +117,7 @@ def update_x01_statistic_after_leg(event_data):
                         server_overall_avg = stats_block.get(c.KEY_MATCH_STATS, {}).get(c.KEY_AVERAGE, 0)
 
                     # Aktualisiere Average und setze is_registered=1 in einem Aufruf
-                    update_and_register_player(cursor, player_db_id, server_overall_avg, game_mode='x01')
+                    update_and_register_player(conn, player_db_id, server_overall_avg, game_mode='x01')
 
                     # Aktualisiere den Cache
                     g.player_data_map[player_name_lower][c.KEY_OA_AVERAGE] = float(server_overall_avg)
@@ -129,7 +127,7 @@ def update_x01_statistic_after_leg(event_data):
 
                 else:
                     # Der Spieler ist ein Gast
-                    calculated_avg = calculate_and_update_guest_average(cursor, player_db_id, game_mode='x01')
+                    calculated_avg = calculate_and_update_guest_average(conn, player_db_id, game_mode='x01')
                     g.player_data_map[player_name_lower][c.KEY_OA_AVERAGE] = calculated_avg
 
                     if g.DEBUG:

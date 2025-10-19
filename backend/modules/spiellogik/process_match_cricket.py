@@ -108,7 +108,7 @@ def update_cricket_tactics_statistic_after_leg(event_data):
 
     with get_db_connection() as conn:
         if not conn: return
-        cursor = conn.cursor(dictionary=True)
+
         try:
             match_id = event_data.get(c.KEY_ID)
             current_leg = event_data.get(c.KEY_LEG)
@@ -133,10 +133,10 @@ def update_cricket_tactics_statistic_after_leg(event_data):
                 
                 # Hole oder erstelle den Spieler in der richtigen Tabelle
                 # KORREKTUR: 'table_prefix' zu 'game_mode' und korrekte Variable übergeben
-                player_info = get_player_data_from_db(cursor, player_name, game_mode=game_mode_str)
+                player_info = get_player_data_from_db(conn, player_name, game_mode=game_mode_str)
                 if not player_info:
                     # KORREKTUR: 'table_prefix' zu 'game_mode' und korrekte Variable übergeben
-                    player_db_id = create_guest_player(cursor, player_name, game_mode=game_mode_str)
+                    player_db_id = create_guest_player(conn, player_name, game_mode=game_mode_str)
                     conn.commit()
                     if player_db_id is None: continue
                     player_info = {'id': player_db_id}
@@ -147,11 +147,11 @@ def update_cricket_tactics_statistic_after_leg(event_data):
                 leg_stats = {'marks': total_marks, 'darts': leg_darts}
                 if leg_darts > 0:
                     # KORREKTUR: 'table_prefix' zu 'game_mode' und korrekte Variable übergeben
-                    save_leg_to_history(cursor, player_db_id, match_id, current_leg, leg_stats, game_mode=game_mode_str)
+                    save_leg_to_history(conn, player_db_id, match_id, current_leg, leg_stats, game_mode=game_mode_str)
 
                 # Schritt 4 & 5: Berechne und speichere neuen Gesamt-MPR
                 # KORREKTUR: korrekte Variable übergeben
-                new_mpr = calculate_and_update_guest_average(cursor, player_db_id, game_mode=game_mode_str)
+                new_mpr = calculate_and_update_guest_average(conn, player_db_id, game_mode=game_mode_str)
                 
                 # NEU: Aktualisiere das korrekte Feld im Cache
                 if player_name_lower in g.player_data_map:

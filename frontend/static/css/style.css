@@ -612,42 +612,61 @@ body {
     display: none;
 }
 
-.info-area__details div {
-    margin-bottom: 1rem;
-}
-
 .info-area__details-gamemode {
     font-size: 3rem;
     color: var(--green-color);
     font-weight: bold;
-     margin-left: 1rem;
+    margin-bottom: 0.5rem;
 }
 
+.info-area__details-gamemode:hover {
+    cursor: pointer;
+    opacity: 0.8;
+}
 
 .info-area__details-gamerules {
     font-size: 2.0rem;
-    line-height: 1.4;
     text-align: left;
-    display: table;
     width: 100%;
-    border-spacing: 1.5rem 0.5rem;
 }
 
-.info-area__details-gamerules .setting-row {
+.gamerule-full-width {
+    padding: 0rem 0; /* Fügt einen kleinen vertikalen Abstand hinzu */
+}
+
+.gamerules-table {
+    display: table;
+    width: auto; /* Passt sich dem Inhalt an */
+    border-spacing: 0; /* Kein Abstand zwischen den Zellen */
+}
+
+.gamerules-table .setting-row {
     display: table-row;
 }
 
-.info-area__details-gamerules .setting-label {
+.gamerules-table .setting-label,
+.gamerules-table .setting-value {
     display: table-cell;
-    text-align: right;
+    padding: 0rem 0; /* Gleicher vertikaler Abstand wie bei den einzeiligen Regeln */
+    vertical-align: top;
 }
 
-.info-area__details-gamerules .setting-value {
-    display: table-cell;
+.gamerules-table .setting-label {
     text-align: left;
-    color: var(--green-color);
-    font-weight: bold;
+    padding-right: 1.5rem; /* Abstand zwischen Label und Wert */
+    white-space: nowrap;
 }
+
+.gamerules-table .setting-value {
+    text-align: left;
+}
+
+.gamerules-table .setting-row--timer .setting-label,
+.gamerules-table .setting-row--timer .setting-value {
+    color: var(--text-dim);
+    font-weight: normal;
+}
+
 
 .initial-view__status {
     font-size: 2rem;
@@ -714,4 +733,96 @@ body {
 
 .control-button:active {
     transform: scale(0.95);
+}
+/* ===================================================================
+   10. Spieldauer-Anzeige (NEU)
+   =================================================================== */
+
+#info-area__match-duration {
+    position: fixed; /* Positioniert das Element relativ zum Browserfenster */
+    top: 2.5rem;
+    right: 3rem;
+    font-size: 2.5rem;
+    font-weight: bold;
+    color: var(--text-secondary);
+    z-index: 11;
+    background-color: rgba(44, 44, 44, 0.8);
+    padding: 0.5rem 1.5rem;
+    border-radius: 0.8rem;
+    display: none; /* Wird per JavaScript eingeblendet */
+}
+
+/* ===================================================================
+   11. Header-Link für Config-Editor (NEU)
+   =================================================================== */
+
+.header-link {
+    text-decoration: none;  /* Entfernt die Unterstreichung */
+    color: inherit;         /* Sorgt dafür, dass der h1-Titel seine Farbe behält */
+    cursor: pointer;        /* Zeigt einen Klick-Cursor an */
+}
+
+/* ===================================================================
+   12. Regel-Modal-Fenster
+   =================================================================== */
+
+.rules-modal-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background-color: rgba(0, 0, 0, 0.8);
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    z-index: 1000;
+    cursor: pointer;
+}
+
+.rules-modal-content {
+    background-color: var(--background-secondary);
+    padding: 3rem 4rem;
+    border-radius: 1rem;
+    max-width: 60%;
+    max-height: 80%;
+    overflow-y: auto;
+    cursor: default;
+    position: relative;
+    border: 2px solid var(--border-color);
+}
+
+.rules-modal-close {
+    position: absolute;
+    top: 1rem;
+    right: 1.5rem;
+    background: none;
+    border: none;
+    color: var(--text-dim);
+    font-size: 3rem;
+    font-weight: bold;
+    cursor: pointer;
+}
+
+.rules-modal-close:hover {
+    color: var(--text-primary);
+}
+
+#rules-modal-text {
+    font-size: 2.5rem;
+    line-height: 1.6;
+    color: var(--text-primary);
+}
+
+.game-rules-description__help-first-line {
+    font-weight: bold;
+    color: var(--info-color);
+}
+
+.game-rules-description__help-target-cricket{
+    color: yellow;
+}
+
+.game-rules-description__help-target_tactics{
+    color: yellow;
 }

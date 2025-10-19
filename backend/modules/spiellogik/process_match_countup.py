@@ -27,12 +27,10 @@ def process_match_countup(live_game_data):
     # Universal event object created
     event    = create_universal_game_event(live_game_data)
 
-    # Count Up-specific MatchInfo created and assigned
+    # Count Up-specific MatchInfo
     settings = live_game_data.get(c.KEY_SETTINGS, {})
-    event.match = MatchInfo(
-        game_mode  = "CountUp",
-        max_rounds = settings.get(c.KEY_MAX_ROUNDS, 0)
-    )
+    event.match.game_mode = "CountUp"
+    event.match.max_rounds = settings.get(c.KEY_MAX_ROUNDS, 0)
 
     # Überschreibe den Spielzustand, falls nötig
     # Da Shanghai immer nur ein Leg ist, behandeln wir einen Match-Gewinn
@@ -57,7 +55,7 @@ def update_countup_statistic_after_leg(event_data):
 
     with get_db_connection() as conn:
         if not conn: return
-        cursor = conn.cursor(dictionary=True)
+
         try:
             match_id = event_data.get(c.KEY_ID)
             current_leg = event_data.get(c.KEY_LEG)
@@ -70,9 +68,9 @@ def update_countup_statistic_after_leg(event_data):
                 stats_block = event_data.get(c.KEY_STATS, [])[i]
                 leg_stats = stats_block.get(c.KEY_LEG_STATS, {})
                 
-                player_info = get_player_data_from_db(cursor, player_name, game_mode=game_mode)
+                player_info = get_player_data_from_db(conn, player_name, game_mode=game_mode)
                 if not player_info:
-                    player_db_id = create_guest_player(cursor, player_name, game_mode=game_mode)
+                    player_db_id = create_guest_player(conn, player_name, game_mode=game_mode)
                     conn.commit()
                     if player_db_id is None: continue
                     player_info = {'id': player_db_id}
@@ -80,9 +78,9 @@ def update_countup_statistic_after_leg(event_data):
                 player_db_id = player_info.get('id')
 
                 if leg_stats.get('dartsThrown', 0) > 0:
-                    save_leg_to_history(cursor, player_db_id, match_id, current_leg, leg_stats, game_mode=game_mode)
+                    save_leg_to_history(conn, player_db_id, match_id, current_leg, leg_stats, game_mode=game_mode)
 
-                new_ppr = calculate_and_update_guest_average(cursor, player_db_id, game_mode=game_mode)
+                new_ppr = calculate_and_update_guest_average(conn, player_db_id, game_mode=game_mode)
 
                 if player_name_lower in g.player_data_map:
                     g.player_data_map[player_name_lower][c.KEY_OA_PPR] = new_ppr

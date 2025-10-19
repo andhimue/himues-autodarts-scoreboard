@@ -29,11 +29,9 @@ def process_match_random_checkout(live_game_data):
 
     # Random Checkout-spezifische MatchInfo erstellen und zuweisen
     settings = live_game_data.get(c.KEY_SETTINGS, {})
-    event.match = MatchInfo(
-        game_mode  = "Random Checkout",
-        out_mode   = settings.get(c.KEY_OUTMODE),
-        max_rounds = settings.get(c.KEY_MAX_ROUNDS, 0)
-    )
+    event.match.game_mode = "Random Checkout"
+    event.match.out_mode = settings.get(c.KEY_OUTMODE)
+    event.match.max_rounds = settings.get(c.KEY_MAX_ROUNDS, 0)
 
     # Spezifische Gewinner-Logik für Rundenlimit anwenden
     # Die Standard-Logik für einen normalen Checkout-Sieg ist im Helfer bereits korrekt.

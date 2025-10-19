@@ -26,12 +26,10 @@ def process_match_gotcha(live_game_data):
 
     # Gotcha-spezifische MatchInfo erstellen und zuweisen
     settings = live_game_data.get(c.KEY_SETTINGS, {})
-    event.match = MatchInfo(
-        game_mode="Gotcha",
-        start_score=settings.get(c.KEY_TARGET_SCORE, 0),
-        out_mode=settings.get(c.KEY_OUTMODE),
-        max_rounds=settings.get(c.KEY_MAX_ROUNDS, 0)
-    )
+    event.match.game_mode = "Gotcha"
+    event.match.start_score = settings.get(c.KEY_TARGET_SCORE, 0)
+    event.match.out_mode = settings.get(c.KEY_OUTMODE)
+    event.match.max_rounds = settings.get(c.KEY_MAX_ROUNDS, 0)
 
     # Überschreibe den Spielzustand, falls nötig
     # Da Gotcha immer nur ein Leg ist, behandeln wir einen Match-Gewinn

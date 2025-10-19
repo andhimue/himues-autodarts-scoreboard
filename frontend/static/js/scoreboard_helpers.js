@@ -5,6 +5,10 @@
 let isDisplayActive = false;
 let fireworksInstance = null;
 
+// Für die Anzeige der Match-Laufzeit
+let durationInterval = null;
+let lastDisplayedDuration = '00:00';
+
 // NEU: Globale Konstante für die URL-Parameter-Abfrage.
 // Dieses Objekt existiert nach dem initialen Laden der Seite.
 // Bei F5 oder dem Ändern eines URL-Parameters und Drücken von Return wird er aktualisiert
@@ -177,6 +181,9 @@ function _stopFireworks(fireworks) {
  */
  
 function _cacheLatestServerState(data) {
+    // Wichtig: Behalte den alten Wert des Timers, damit er nicht überschrieben wird
+    data.matchDurationDisplay = appState.matchDurationDisplay;
+    data.rulesModalVisible = appState.rulesModalVisible;
     appState = data;
 }
 
@@ -191,7 +198,7 @@ function _routeToGameViewUpdater() {
     // Liest Informationen aus dem globalen appState
     const players = appState.players || [];
     const mode = appState.match ? appState.match.game_mode : null;
-    console.log(backendConnected ? "verbunden" : "nicht verbunden")
+    if (DEBUG) console.log(backendConnected ? "verbunden" : "nicht verbunden")
     if (backendConnected) {
         if (players.length > 0) {
             UI.statusMessage.hide();
@@ -222,16 +229,14 @@ function _routeToGameViewUpdater() {
                 UI.statusMessage.text(`Spielmodus '${mode}' wird nicht unterstützt.`).show();
             }
         } else {
-            // Logik, wenn kein Spiel aktiv ist (bleibt unverändert)
-    //        UI.statusMessage.text('Warte auf ein neues Match...').show();
-    //        UI.mainContainer.hide();
-    //        UI.gameDetails.hide();
-    //        UI.bustOverlaysContainer.hide();
-    //        UI.initialView.show();
             // Logik für KEIN aktives Spiel (Zustand 2)
             UI.mainContainer.hide();
             UI.initialView.show();
 
+            // Wenn kein Spiel aktiv ist, schließe auch das Regel-Modal.
+            appState.rulesModalVisible = false;
+            UI.rulesModalOverlay.fadeOut(200);
+            
             // Setzt die finale Statusmeldung, wenn alles verbunden ist und kein Spiel läuft.
             UI.statusMessage.text('Verbunden! Warte auf Match...').show();
 
@@ -258,6 +263,10 @@ function _BackendOffline() {
     // 4. Blende die (jetzt veraltete) Liste der Spielmodi aus.
     UI.modesOverview.hide();
 
+    // Wenn die Verbindung verloren geht, schließe auch das Regel-Modal.
+    appState.rulesModalVisible = false;
+    UI.rulesModalOverlay.fadeOut(200);
+    
     // 5. Stoppe sicherheitshalber alle Animationen
     //_stopFireworks(_initializeFireworks());
     _stopFireworks(fireworksInstance);
@@ -266,34 +275,34 @@ function _BackendOffline() {
 
 //------------------------------------------------------------------
 
-    /**
-     * @summary Verarbeitet Events wie Match-Start/-Ende, Gewinner-Anzeige oder Busts.
-     * Diese Funktion kümmert sich um alles, was nicht direkt die Spielstandsanzeige betrifft.
-     * Analysiert den Spielzustand und ruft die passende Hilfsfunktion
-     * zur Anzeige von Overlays, Gewinner-Nachrichten und anderen Benachrichtigungen auf.
-    */
-    function _processGameNotifications() {
-        const fireworks = _initializeFireworks();
+/**
+ * @summary Verarbeitet Events wie Match-Start/-Ende, Gewinner-Anzeige oder Busts.
+ * Diese Funktion kümmert sich um alles, was nicht direkt die Spielstandsanzeige betrifft.
+ * Analysiert den Spielzustand und ruft die passende Hilfsfunktion
+ * zur Anzeige von Overlays, Gewinner-Nachrichten und anderen Benachrichtigungen auf.
+*/
+function _processGameNotifications() {
+    const fireworks = _initializeFireworks();
 
-        _handleInitialViewAndAutoStart();
+    _handleInitialViewAndAutoStart();
 
-        const { game_state, match } = appState;
-        const gameMode = match ? match.game_mode : null;
+    const { game_state, match } = appState;
+    const gameMode = match ? match.game_mode : null;
 
-        // Setzt Overlays und Hintergründe für jeden normalen Wurf zurück
-        UI.winnerOverlay.hide().removeClass('tie-bg');
-        UI.gameContent.show();
-        _stopFireworks(fireworks); // Stellt sicher, dass Feuerwerk immer gestoppt wird
+    // Setzt Overlays und Hintergründe für jeden normalen Wurf zurück
+    UI.winnerOverlay.hide().removeClass('tie-bg');
+    UI.gameContent.show();
+    _stopFireworks(fireworks); // Stellt sicher, dass Feuerwerk immer gestoppt wird
 
-        // Dispatcher, der die passende Funktion für den aktuellen Zustand aufruft
-        if (gameMode === "Bob's 27" && (game_state === 'game_over' || game_state === 'busted')) {
-            _displayBobs27EndState();
-        } else if (game_state === 'leg_won' || game_state === 'match_won') {
-            _displayWinner(fireworks);
-        } else if (game_state === 'bull_off_tie') {
-            _displayBullOffTie();
-        }
+    // Dispatcher, der die passende Funktion für den aktuellen Zustand aufruft
+    if (gameMode === "Bob's 27" && (game_state === 'game_over' || game_state === 'busted')) {
+        _displayBobs27EndState();
+    } else if (game_state === 'leg_won' || game_state === 'match_won') {
+        _displayWinner(fireworks);
+    } else if (game_state === 'bull_off_tie') {
+        _displayBullOffTie();
     }
+}
 
 //------------------------------------------------------------------
 
@@ -308,7 +317,10 @@ function _setupInitialScreen() {
         UI.modesList.empty(); // Vorherigen Inhalt leeren
         UI.statusMessage.text('Verbunden! Warte auf Match...');
         SUPPORTED_GAME_MODES.forEach(mode => {
-            const modeElement = $('<span>').addClass('game-mode-item').text(mode);
+            const modeElement = $('<span>')
+                .addClass('game-mode-item')
+                .attr('data-gamemode', mode) // Fügt z.B. data-gamemode="X01" hinzu
+                .text(mode);
             UI.modesList.append(modeElement);
         });
         
@@ -328,7 +340,76 @@ function _setupInitialScreen() {
         else if (elem.msRequestFullscreen) { elem.msRequestFullscreen(); }
     });
 
-    document.addEventListener('fullscreenchange', () => {
-        UI.body.toggleClass('hide-cursor', !!document.fullscreenElement);
-    });
+    //document.addEventListener('fullscreenchange', () => {
+    //    UI.body.toggleClass('hide-cursor', !!document.fullscreenElement);
+    //});
+}
+//------------------------------------------------------------------
+
+/**
+ * @summary Verwaltet den Spieldauer-Timer. Startet oder stoppt ihn basierend auf dem Spielstatus.
+ */
+function _handleDurationTimer() {
+    if (durationInterval) {
+        clearInterval(durationInterval);
+        durationInterval = null;
+    }
+
+    appState.matchDurationDisplay = null;
+    lastDisplayedDuration = null;
+
+    // Dieselbe Logik wie im ViewModel, um zu entscheiden, OB der Timer laufen soll
+    let showTimer = SHOW_MATCH_DURATION;
+    if (URL_PARAMS.has('ts')) {
+        showTimer = true;
+    } else if (URL_PARAMS.has('tn')) {
+        showTimer = false;
+    }
+    
+    if (showTimer && appState && appState.match && appState.match.created_at) {
+        durationInterval = setInterval(_updateMatchDuration, 1000);
+        _updateMatchDuration();
+    }
+}
+
+
+/**
+ * @summary Berechnet die vergangene Zeit, rundet sie und aktualisiert die Anzeige nur bei einer Änderung.
+ */
+function _updateMatchDuration() {
+    if (!appState.match || !appState.match.created_at) return;
+
+    const startTime = new Date(appState.match.created_at);
+    const now = new Date();
+    const diffInSeconds = Math.floor((now - startTime) / 1000);
+
+    if (isNaN(diffInSeconds) || diffInSeconds < 0) {
+        return;
+    }
+
+    const hours = Math.floor(diffInSeconds / 3600);
+    const minutes = Math.floor((diffInSeconds % 3600) / 60);
+    const interval = MATCH_DURATION_INTERVAL > 0 ? MATCH_DURATION_INTERVAL : 5;
+    const roundedSeconds = Math.floor((diffInSeconds % 60) / interval) * interval;
+
+    const paddedMinutes = String(minutes).padStart(2, '0');
+    const paddedSeconds = String(roundedSeconds).padStart(2, '0');
+
+    let durationString = `${paddedMinutes}:${paddedSeconds}`;
+    if (hours > 0) {
+        const paddedHours = String(hours).padStart(2, '0');
+        durationString = `${paddedHours}:${durationString}`;
+    }
+
+    // Prüfe, ob sich der gerundete Wert geändert hat.
+    if (durationString !== lastDisplayedDuration) {
+        lastDisplayedDuration = durationString;
+        // 1. Aktualisiere den globalen Zustand.
+        appState.matchDurationDisplay = durationString;
+
+        // 2. KORREKTUR: Finde die Elemente bei JEDEM Update neu, anstatt den Cache zu verwenden.
+        // Das stellt sicher, dass sie auch nach einer Neuzeichnung der Regeln noch gefunden werden.
+        $('#info-area__details-match-duration-rules').text(durationString);
+        $('#info-area__match-duration').text(durationString);
+    }
 }

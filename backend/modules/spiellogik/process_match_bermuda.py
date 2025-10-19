@@ -28,10 +28,8 @@ def process_match_bermuda(live_game_data):
     event = create_universal_game_event(live_game_data)
 
     # MatchInfo mit Bermuda-spezifischen Regeln überschreiben
-    event.match = MatchInfo(
-        game_mode="Bermuda",
-        max_rounds=13
-    )
+    event.match.game_mode = "Bermuda"
+    event.match.max_rounds = 13
 
     # Runden-Ziel ermitteln und eintragen
     current_round       = event.turn.current_round

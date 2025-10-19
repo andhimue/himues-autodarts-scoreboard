@@ -1,15 +1,28 @@
 # Frontend/modules/core/shared_state.py
 
-VERSION="1.2"
+VERSION="1.3"
 
 # Dieses Modul enthält globale Variablen, die vom Frontend-Dienst geteilt werden.
-FLASK_HOST = None
-FLASK_PORT = None
-FLASK_DEBUG = None
+WEBSERVER_HOST = None
+WEBSERVER_PORT = None
 
-WEBSERVER_DISABLE_HTTPS = None
+BACKEND_HOST = None
+BACKEND_PORT = None
+
+CONFIG_EDITOR_USER = None
+CONFIG_EDITOR_PASSWORD = None
+
+# Platzhalter für Zertifikatspfade
+CERT_FILE                = None
+KEY_FILE                 = None
+
 DEBUG = 0
-SHOW_ONLY_FIREWORK_VIDEO = None
+
+SHOW_MATCH_DURATION              = None
+SHOW_DURATION_IN_GAMERULES       = None
+MATCH_DURATION_INTERVAL          = None
+
+SHOW_ONLY_FIREWORK_VIDEO         = None
 BROWSER_NAMES_TO_SHOW_ONLY_VIDEO = None
 
 # Steuert die Standard-Sortierung der Spielerliste im Frontend.

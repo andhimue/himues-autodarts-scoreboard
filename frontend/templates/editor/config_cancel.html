@@ -1,0 +1,20 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+    <meta charset="UTF-8">
+    <title>Abgebrochen</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/config_editor.css') }}">
+    <script>
+        // Nach 3 Sekunden zur Hauptseite zurückkehren
+        setTimeout(() => {
+            window.location.href = '/';
+        }, 3000);
+    </script>
+</head>
+<body class="center-box-container">
+    <div class="message-box">
+        <h1 style="color: #ffc107;">Abgebrochen</h1>
+        <p>{{ message }}</p>
+    </div>
+</body>
+</html>

@@ -4,7 +4,6 @@ import os
 import sys
 from pathlib import Path
 from dotenv import load_dotenv
-import argparse
 
 from . import shared_state as g
 import config
@@ -30,7 +29,10 @@ def load_and_parse_config():
     g.AUTODARTS_BOARD_ID              = os.getenv("AUTODARTS_BOARD_ID")               or getattr(config, 'AUTODARTS_BOARD_ID', g.AUTODARTS_BOARD_ID)
     g.AUTODARTS_CERT_CHECK            =                                                  getattr(config, 'AUTODARTS_CERT_CHECK', g.AUTODARTS_CERT_CHECK)
 
-    g.USE_DATABASE                    = _to_bool(getattr(config, 'USE_DATABASE', g.USE_DATABASE))
+    db_type_value                     = os.getenv("DATABASE_TYPE")                    or getattr(config, 'DATABASE_TYPE', g.DATABASE_TYPE)
+    g.DATABASE_TYPE                   = str(db_type_value).lower()
+ 
+    g.USE_DATABASE                    = _to_bool(os.getenv("USE_DATABASE")            or getattr(config, 'USE_DATABASE', g.USE_DATABASE))
     g.DB_USER                         =     os.getenv("DB_USER")                      or getattr(config, 'DB_USER', g.DB_USER)
     g.DB_PASSWORD                     =     os.getenv("DB_PASSWORD")                  or getattr(config, 'DB_PASSWORD', g.DB_PASSWORD)
     g.DB_HOST                         =     os.getenv("DB_HOST")                      or getattr(config, 'DB_HOST', g.DB_HOST)
@@ -46,9 +48,12 @@ def load_and_parse_config():
         
     g.DEBUG                           = _to_bool(                                        getattr(config, 'DEBUG', g.DEBUG))
     
-    g.WEBSERVER_DISABLE_HTTPS         = _to_bool(                                        getattr(config, 'WEBSERVER_DISABLE_HTTPS', g.WEBSERVER_DISABLE_HTTPS))
-    g.WEBSERVER_HOST_IP               =                                                  getattr(config, 'WEBSERVER_HOST_IP', g.WEBSERVER_HOST_IP)
-    webserver_host_port               =                                                  getattr(config, 'WEBSERVER_HOST_PORT', g.WEBSERVER_HOST_PORT)
+ 
+    g.CERT_FILE                       =                                                 getattr(config, 'CERT_FILE', g.CERT_FILE)
+    g.KEY_FILE                        =                                                 getattr(config, 'KEY_FILE', g.KEY_FILE)
+
+    g.WEBSERVER_HOST_IP               =                                                 getattr(config, 'WEBSERVER_HOST_IP', g.WEBSERVER_HOST_IP)
+    webserver_host_port               =                                                 getattr(config, 'WEBSERVER_HOST_PORT', g.WEBSERVER_HOST_PORT)
     
     # Versuche, den Wert in eine Ganzzahl umzuwandeln.
     # Bei einem Fehler (z.B. bei leerem String) wird der Standardwert 3306 verwendet.

@@ -5,5 +5,6 @@ VERSION = "1.1"
 # Konfigurationsvariablen
 FLASK_HOST = None
 FLASK_PORT = None
-WEBSERVER_DISABLE_HTTPS = None
+CERT_FILE                = None
+KEY_FILE                 = None
 SERVER_ADDRESS = None

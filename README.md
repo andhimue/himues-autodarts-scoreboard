@@ -1,9 +1,9 @@
-# Himues Darts Scoreboard - Installationsanleitung
+# <span class="header-section-number">1</span> Himues Darts Scoreboard - Installationsanleitung
 
 Herzlich willkommen! Diese Anleitung hilft Ihnen, das **Himues Darts
 Scoreboard** auf Ihrem System zu installieren und zu konfigurieren.
 
-# Was ist das Himues Darts Scoreboard?
+# <span class="header-section-number">2</span> Was ist das Himues Darts Scoreboard?
 
 Das **Himues Darts Scoreboard** ist eine Webanwendung, die als
 alternative, großformatige Anzeige für Ihre Autodarts-Spiele dient. Sie
@@ -24,39 +24,57 @@ Monitor im Browser zu laufen.
     werden, um langfristige Statistiken (Average, MPR, etc.) für alle
     Spieler – auch für Gäste – zu speichern und anzuzeigen.
 
-# Screenshoots
+# <span class="header-section-number">3</span> WICHTIG!!!
+Ich kann leider aktuell keine keycloack-Credentials für den Autodarts-Server liefern. Hier warte ich noch auf Rückmeldung von Autodarts.
+Wenn Sie eigene Credentials haben, können Sie diese entweder in der backend/config.py oder in der backend/.env folgendermaßen eintragen:
 
-Startseite:
+    AUTODARTS_CLIENT_ID     = ""  
+    AUTODARTS_CLIENT_SECRET =""  
 
-<img src="./media/image1.jpeg"
-style="width:6.48681in;height:2.66944in" />
+Ohne Credentials ist **Himues Darts Scoreboard** leider nicht nutzbar :-(
 
-X01 in der Tabellen-Ansicht
+# <span class="header-section-number">4</span> Screenshoots
 
-<img src="./media/image2.jpeg"
-style="width:6.55208in;height:2.39583in" />
 
-X01 mit Spieler-Kartenanzeige
 
-<img src="./media/image3.jpeg"
-style="width:6.50903in;height:2.06528in" />
+**Startseite:**
 
-Cricket
+<img src="./media/image1.jpeg" style="width:6.48681in;height:2.66944in" />
 
-<img src="./media/image4.jpeg"
-style="width:6.48681in;height:2.33889in" />
 
-Around The Clock mit Zielsegment-Anzeige
 
-<img src="./media/image5.jpeg"
-style="width:6.50903in;height:2.33056in" />
+**X01 in der Tabellen-Ansicht**
 
-# Installation (Empfohlene Methode für Linux mit systemd)
+<img src="./media/image2.jpeg" style="width:6.55208in;height:2.39583in" />
+
+
+
+**X01 mit Spieler-Kartenanzeige**
+
+<img src="./media/image3.jpeg" style="width:6.50903in;height:2.06528in" />
+
+
+
+**Cricket**
+
+<img src="./media/image4.jpeg" style="width:6.48681in;height:2.33889in" />
+
+
+
+**Around The Clock mit Zielsegment-Anzeige**
+
+<img src="./media/image5.jpeg" style="width:6.50903in;height:2.33056in" />
+
+# <span class="header-section-number">5</span> Hilfe anzeigen
+In den einzelnen Spielmodi kann durch einen Klick an einer beliebigen Stelle des Bildschirms eine kurze 
+Spielbeschreibung ein- und ausgeblendet werden.
+
+# <span class="header-section-number">6</span> Installation (Empfohlene Methode für Linux mit systemd)
 
 Diese Methode nutzt das beiliegende Installationsskript, das die meisten
 Schritte für Sie automatisiert.
 
-## Voraussetzungen
+## <span class="header-section-number">6.1</span> Voraussetzungen
 
 -   Ein Computer mit einem **Debian-basierten Linux** (z.B. Debian,
     Ubuntu, Raspberry Pi OS).
@@ -68,21 +86,21 @@ Schritte für Sie automatisiert.
 
 -   **Git** muss installiert sein (sudo apt install git).
 
-## Installationsschritte
+## <span class="header-section-number">6.2</span> Installationsschritte
 
 1.  **Projekt herunterladen:** Öffnen Sie ein Terminal und klonen Sie
-    > das Projekt von GitHub:
+    das Projekt von GitHub:
 
-&gt; git clone
-https://github.com/andhimue/himues-autodarts-scoreboard.git  
-**In das Verzeichnis wechseln:**
+    git clone *https://github.com/andhimue/himues-autodarts-scoreboard.git*  
 
-&gt; cd himues-autodarts-scoreboard
+1.  **In das Verzeichnis wechseln:**
+
+    *cd himues-autodarts-scoreboard*  
 
 1.  **Installationsskript ausführen:** Starten Sie das Skript. Es wird
-    > Sie durch den gesamten Prozess führen.
+    Sie durch den gesamten Prozess führen.
 
-&gt; python3 install.py
+    *python3 install.py*  
 
 1.  **Den Anweisungen folgen:**
 
@@ -95,9 +113,10 @@ https://github.com/andhimue/himues-autodarts-scoreboard.git
         **Board-ID** gefragt.
 
     -   Sie werden gefragt, ob Sie die **Datenbank-Funktion** für
-        Langzeit-Statistiken nutzen möchten. Wenn Sie "Ja" sagen, werden
-        Sie nach den Zugangsdaten für Ihre MariaDB/MySQL-Datenbank
-        gefragt.
+        Langzeit-Statistiken nutzen möchten. 
+	Hier können Sie zwischen 'keine Datenbank', 'sqlite' und 'mariadb' wählen.
+	Bei Auswahl von mariadb werden Sie nach den Zugangsdaten für 
+	Ihre MariaDB/MySQL-Datenbank gefragt.
 
     -   Anschließend können Sie wählen, ob die Konfiguration in einer
         .env-Datei oder direkt in der config.py gespeichert werden soll.
@@ -115,12 +134,12 @@ Am Ende der Installation zeigt Ihnen das Skript die lokalen IP-Adressen
 an, unter denen das Scoreboard im Browser erreichbar ist (z.B.
 http://192.168.1.100:6002).
 
-# Manuelle Installation (Für andere Systeme oder Experten)
+# <span class="header-section-number">7</span> Manuelle Installation (Für andere Systeme oder Experten)
 
-Falls Sie kein systemd verwenden (z.B. auf Windows) oder die
-Installation manuell durchführen möchten, folgen Sie diesen Schritten.
+Falls Sie kein systemd verwenden oder die  Installation
+manuell durchführen möchten, folgen Sie diesen Schritten.
 
-## Voraussetzungen
+## <span class="header-section-number">7.1</span> Voraussetzungen
 
 -   Stellen Sie sicher, dass **Python 3.8+** und das dazugehörige
     venv-Modul installiert sind.
@@ -128,13 +147,13 @@ Installation manuell durchführen möchten, folgen Sie diesen Schritten.
 -   Installieren Sie bei Bedarf manuell die Entwickler-Pakete für
     MariaDB/MySQL.
 
-## Installationsschritte
+## <span class="header-section-number">7.2</span> Installationsschritte
 
 1.  **Projekt herunterladen** (siehe Schritt 2.2.1).
 
 2.  **Virtuelle Umgebung (venv) erstellen:**
 
-&gt; python3 -m venv venv
+    *python3 -m venv venv*  
 
 1.  **Venv aktivieren:**
 
@@ -144,7 +163,7 @@ Installation manuell durchführen möchten, folgen Sie diesen Schritten.
 
 2.  **Python-Pakete installieren:**
 
-&gt; pip install -r requirements.txt
+    *pip install -r requirements.txt*  
 
 1.  **Konfiguration erstellen:**
 
@@ -157,8 +176,6 @@ Installation manuell durchführen möchten, folgen Sie diesen Schritten.
     -   Fügen Sie die notwendigen Konfigurationsvariablen hinzu (siehe
         Abschnitt 4).
 
-<!-- -->
-
 1.  **Manuelles Starten der Anwendung**
 
 Da keine automatischen Dienste eingerichtet wurden, müssen Sie das
@@ -167,26 +184,22 @@ starten.
 
 -   **Terminal 1 (Backend):**
 
-&gt; cd /pfad/zum/projekt/backend
-
-&gt; source ../venv/bin/activate
-
-&gt;./start-prod.sh
+    *cd /pfad/zum/projekt/backend*  
+    *source ../venv/bin/activate*  
+    *./start-prod.sh*  
 
 -   **Terminal 2 (Frontend):**
 
-&gt; cd /pfad/zum/projekt/frontend
-
-&gt; source ../venv/bin/activate
-
-&gt;./start-prod.sh
+    *cd /pfad/zum/projekt/frontend*  
+    *source ../venv/bin/activate*  
+    *./start-prod.sh* 
 
 **Hinweis:** Die Dienste laufen nur, solange diese Terminals geöffnet
 sind, und starten nicht automatisch mit dem System.
 
-# Konfigurationsmöglichkeiten (werden bei Nutzung des Installationsscripts aus Punkt 3 automatisch gesetzt)
+# <span class="header-section-number">8</span> Konfigurationsmöglichkeiten (werden bei Nutzung des Installationsscripts aus Punkt 3 automatisch gesetzt)
 
-## Speicherort
+## <span class="header-section-number">8.1</span> Speicherort
 
 Die Konfiguration wird im backend-Verzeichnis gespeichert. Das
 Installationsskript fragt Sie, ob Sie eine .env-Datei oder die
@@ -197,7 +210,7 @@ config.py-Datei verwenden möchten.
 
 -   **config.py:** Dient als Fallback und Vorlage.
 
-## Notwendige Einstellungen
+## <span class="header-section-number">8.2</span> Notwendige Einstellungen
 
 Diese Werte müssen für den Betrieb zwingend konfiguriert werden:
 
@@ -207,14 +220,14 @@ Diese Werte müssen für den Betrieb zwingend konfiguriert werden:
 
 -   AUTODARTS\_BOARD\_ID
 
-## Optionale Datenbank-Einstellungen
+## <span class="header-section-number">8.3</span> Optionale Datenbank-Einstellungen
 
 Diese Werte sind nur relevant, wenn Sie die Statistik-Funktion nutzen
-(USE\_DATABASE = True):
+(USE\_DATABASE = True) und mariadb als Datenbank ausgewählt haben:
 
 -   DB\_HOST, DB\_PORT, DB\_USER, DB\_PASSWORD, DB\_DATABASE
 
-## Weitere Einstellungen
+## <span class="header-section-number">8.4</span> Weitere Einstellungen
 
 In der backend/config.py-Datei können Sie weitere Details anpassen:
 
@@ -226,7 +239,7 @@ In der backend/config.py-Datei können Sie weitere Details anpassen:
     maximal sein darf (in Stunden), um bei einem Neustart des Backends
     wiederhergestellt zu werden.
 
-# Kurzerklärung des Sicherheits-Moduls
+# <span class="header-section-number">9</span> Kurzerklärung des Sicherheits-Moduls
 
 Die Anwendung benötigt zur Kommunikation mit den Autodarts-Servern einen
 speziellen Satz von Schlüsseln (client\_id und client\_secret).
@@ -245,7 +258,16 @@ Für maximale Flexibilität und als Backup-Möglichkeit wurde eine
     config.py-Datei selbst eintragen, wird das Modul diese Werte
     bevorzugt verwenden und den externen Server nicht kontaktieren.
 
-# Gesamtdokumentation
+# <span class="header-section-number">10</span> Frontend Config-Editor
+Durch Klick auf das Logo *Himüs Autodarts Scoreboard* oder durch anhängen von /config-editor an die URL
+können Sie einen Config\_Editor mit den wichtigsten Variablen aus der frontend\_config.py aufrufen.
+Hier können auf einfache Weise Einstellungen geändert werden.
+
+Läuft das Frontend als systemd-Dienst wird es im Anschluss neu gestartet um die Änderungen direkt zu übernehmen.
+
+Innerhalb der config\_frontend.py kann der Config-Editor mit Usernamen und Passwort geschützt werden.
+
+# <span class="header-section-number">11</span> Gesamtdokumentation
 
 Die Gesamtdokumentation des Projektes ist im Word-Dokument:
 Projektdokumentation Himues Darts Scoreboard Vx.x.docx zu finden

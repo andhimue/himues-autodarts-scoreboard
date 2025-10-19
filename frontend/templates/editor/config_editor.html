@@ -1,0 +1,48 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+    <meta charset="UTF-8">
+    <title>Konfigurations-Editor</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/config_editor.css') }}">
+</head>
+<body>
+    <div class="container">
+        <a href="{{ url_for('logout') }}" class="btn btn-logout">Logout</a>
+        <h1>Konfigurations-Editor</h1>
+        <p>Ändern Sie hier die Einstellungen für das Frontend. Die Änderungen werden nach dem Speichern aktiv.</p>
+        
+        <form action="{{ url_for('config_editor') }}" method="post">
+            {% for section in structure %}
+            <fieldset>
+                <legend>{{ section.title }}</legend>
+                {% for var in section.variables %}
+                <div class="form-group">
+                    <label for="{{ var.name }}">{{ var.name }}</label>
+                    
+                    {% if var.type == 'boolean' %}
+                        <input type="checkbox" id="{{ var.name }}" name="{{ var.name }}" {% if var.value %}checked{% endif %}>
+                        <label for="{{ var.name }}" class="checkbox-label">Aktiviert</label>
+                    {% elif var.type == 'integer' %}
+                        <input type="number" id="{{ var.name }}" name="{{ var.name }}" value="{{ var.value }}">
+                    {% else %}
+                        <input type="text" id="{{ var.name }}" name="{{ var.name }}" value="{{ var.value }}">
+                    {% endif %}
+                    
+                    {% if var.comment %}
+                    <p class="comment">{{ var.comment }}</p>
+                    {% endif %}
+                </div>
+                {% endfor %}
+            </fieldset>
+            {% endfor %}
+            
+            {% if is_service %}
+                <button type="submit" class="btn btn-primary">Speichern & Neustarten</button>
+            {% else %}
+                <button type="submit" class="btn btn-primary">Speichern (Manueller Neustart erforderlich)</button>
+            {% endif %}
+            <a href="{{ url_for('config_cancel') }}" class="btn btn-logout" style="float: none; margin-left: 10px;">Abbrechen</a>
+            </form>
+    </div>
+</body>
+</html>

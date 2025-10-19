@@ -30,8 +30,9 @@ def process_match_bull_off(live_game_data):
     event       = create_universal_game_event(live_game_data)
 
     # Bull-off-spezifische MatchInfo erstellen und zuweisen
-    event.match = MatchInfo(game_mode="Bull-off")
-
+    event.match.game_mode  = "Bull-off"
+    event.match.created_at = None
+    
     # Spieler-Scores für die Anzeige anpassen
     for player in event.players:
         if player.score == 0:

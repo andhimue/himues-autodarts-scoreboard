@@ -6,7 +6,7 @@
 # ==============================================================================
 # === 1. BENUTZER-KONFIGURATION (Wird beim Start geladen und ist dann konstant) ===
 # ==============================================================================
-VERSION = "1.2"
+VERSION = "1.3"
 DEBUG   = 0  # 0 = kein Debugging, höhere Zahlen für weitere Stufen
 
 # --- Autodarts Konfiguration ---
@@ -18,14 +18,20 @@ AUTODARTS_CERT_CHECK     = True
 
 # --- Datenbank Konfiguration ---
 USE_DATABASE             = None
+DATABASE_TYPE            = 'mariadb' # mariadb oder sqlite
 DB_USER                  = ''
 DB_PASSWORD              = ''
 DB_HOST                  = ''
 DB_PORT                  = 3306
+DB_DATABASE              = ''
 
 # --- Webserver & Spiel-Konfiguration ---
 SUPPORTED_GAME_VARIANTS  = ['Bull-off', 'X01', 'Cricket/Tactics', "Bermuda", "Shanghai", "Gotcha", "Around the Clock", "Round the World", "Count Up", "Segment Training", "Bob's 27"]
-WEBSERVER_DISABLE_HTTPS  = None
+
+# Platzhalter für Zertifikatspfade
+CERT_FILE                = None
+KEY_FILE                 = None
+
 WEBSERVER_HOST_IP        = None
 WEBSERVER_HOST_PORT      = None
 

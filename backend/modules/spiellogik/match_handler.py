@@ -3,7 +3,6 @@
 import json
 import requests
 import logging
-import traceback
 from ..core import shared_state as g
 from ..core import constants as c
 from ..core import security_module
@@ -13,8 +12,6 @@ from ..core.utils_backend import (
 )
 from ..core.database_handler import get_db_connection, get_player_data_from_db, STAT_CONFIG
 from ..core.event_structure import GameEvent, MatchInfo, TurnInfo, PlayerInfo
-from ..autodarts.local_board_client import reset_board
-from ..autodarts.autodarts_api_client import request_next_player, undo_throw
 
 # ==============================================================================
 # === Kickstart-FUNKTIONEN ===
@@ -107,6 +104,7 @@ def orchestrate_match_start_and_finish(match_event_data, websocket_connection):
                 logging.info('Stop listening to match: %s', match_event_data.get(c.KEY_ID))
                     
             g.active_match_id = None
+
             g.player_data_map = {}
             g.last_message_to_frontend = {}
             
@@ -129,66 +127,49 @@ def _initialize_player_data_map(initial_match_data):
     
     g.player_data_map.clear()
 
-    # Den Spielmodus für die Tabellenauswahl bestimmen
-    # Dictionary-Mapping statt if/elif-Kette
     variant = initial_match_data.get(c.KEY_SETTINGS, {}).get(c.KEY_GAME_MODE, initial_match_data.get(c.KEY_VARIANT, '')).lower()
-
     game_mode_simple = MODE_MAP.get(variant, 'x01')
     
-    with get_db_connection() as conn:
-        cursor = conn.cursor(dictionary=True) if conn else None
+    # KORREKTUR START: Der Spieler-Loop wird jetzt außerhalb des DB-Blocks ausgeführt.
+    for p_data in initial_match_data.get(c.KEY_PLAYERS, []):
+        player_name = p_data.get(c.KEY_NAME, '')
+        if not player_name: continue
+
+        player_type = c.PLAYER_TYPE_GUEST
+        if p_data.get('userId') and p_data.get('userId') == p_data.get('hostId'):
+            player_type = c.PLAYER_TYPE_OWNER
+        elif p_data.get(c.KEY_USER) is not None:
+            player_type = c.PLAYER_TYPE_REGISTERED
         
-        for p_data in initial_match_data.get(c.KEY_PLAYERS, []):
-            player_name = p_data.get(c.KEY_NAME, '')
+        player_stats = {
+            c.KEY_OA_AVERAGE: 0.0, c.KEY_OA_MPR: 0.0,
+            c.KEY_OA_HIT_RATE: 0.0, c.KEY_OA_PPR: 0.0
+        }
+        stat_value = 0.0
 
-            if not player_name: continue
+        # Die Datenbank wird nur für die Statistikabfrage kontaktiert
+        with get_db_connection() as conn:
+            if conn:
+                if player_type in [c.PLAYER_TYPE_OWNER, c.PLAYER_TYPE_REGISTERED] and game_mode_simple == 'x01':
+                    stat_value = float(p_data.get(c.KEY_USER, {}).get(c.KEY_AVERAGE, 0.0))
+                else:
+                    player_db_info = get_player_data_from_db(conn, player_name, game_mode=game_mode_simple)
+                    stat_column = STAT_CONFIG[game_mode_simple]['column']
+                    if player_db_info and player_db_info.get(stat_column) is not None:
+                        stat_value = player_db_info.get(stat_column)
 
-            # Ermittle Spielertyp
-            player_type = c.PLAYER_TYPE_GUEST
-
-            # Ein Spieler ist der Owner, wenn seine User-ID mit der Host-ID übereinstimmt
-            if p_data.get('userId') and p_data.get('userId') == p_data.get('hostId'):
-                player_type = c.PLAYER_TYPE_OWNER
-
-            # Ein Spieler ist registriert, wenn er ein 'user'-Objekt hat, aber nicht der Owner ist
-            elif p_data.get(c.KEY_USER) is not None:
-                player_type = c.PLAYER_TYPE_REGISTERED
-            
-            # 1. Initialisiere alle Statistik-Felder mit 0.0
-            player_stats = {
-                c.KEY_OA_AVERAGE: 0.0, c.KEY_OA_MPR: 0.0,
-                c.KEY_OA_HIT_RATE: 0.0, c.KEY_OA_PPR: 0.0
-            }
-            stat_value = 0.0
-
-
-            # 2. Lade den EINEN relevanten Wert aus der DB oder vom Server
-            if player_type in [c.PLAYER_TYPE_OWNER, c.PLAYER_TYPE_REGISTERED] and game_mode_simple == 'x01':
-                stat_value = float(p_data.get(c.KEY_USER, {}).get(c.KEY_AVERAGE, 0.0))
-            elif conn:
-                player_db_info = get_player_data_from_db(cursor, player_name, game_mode=game_mode_simple)
-                # Hole den Spaltennamen aus der zentralen Konfiguration
-                stat_column = STAT_CONFIG[game_mode_simple]['column']
-                if player_db_info and player_db_info.get(stat_column) is not None:
-                    stat_value = player_db_info.get(stat_column)
-
-            # 3. Finde den korrekten Cache-Schlüssel und setze den Wert im player_stats Dictionary
-            stat_key_to_update = STAT_CONFIG[game_mode_simple]['cache_key']
-            player_stats[stat_key_to_update] = stat_value
-            
-            # 4. Baue den finalen Eintrag zusammen
-            # Erstelle zuerst das Basis-Dictionary
-            player_entry = {
-                c.KEY_TYPE:           player_type,
-                'stable_index':       p_data.get('index'),
-                'display_order':      None
-            }
-            # Füge dann das (jetzt korrekte) player_stats-Dictionary hinzu
-            player_entry.update(player_stats)
-            
-            # Weise das fertige, kombinierte Dictionary der Map zu
-            g.player_data_map[player_name.lower()] = player_entry
-
+        stat_key_to_update = STAT_CONFIG[game_mode_simple]['cache_key']
+        player_stats[stat_key_to_update] = stat_value
+        
+        player_entry = {
+            c.KEY_TYPE: player_type,
+            'stable_index': p_data.get('index'),
+            'display_order': None
+        }
+        player_entry.update(player_stats)
+        
+        g.player_data_map[player_name.lower()] = player_entry
+        
 #----------------------------------------------------
 
 def create_universal_game_event(live_game_data):
@@ -219,7 +200,8 @@ def create_universal_game_event(live_game_data):
     # 1. Generische MatchInfo direkt aus den Daten erstellen
     match_info = MatchInfo(
         game_mode   = settings.get(c.KEY_GAME_MODE, live_game_data.get(c.KEY_VARIANT)),
-        use_db      = g.USE_DATABASE, # Setzt das Flag basierend auf der globalen Konfig
+        use_db      = g.USE_DATABASE,                  # Setzt das Flag basierend auf der globalen Konfig
+        created_at  = live_game_data.get('createdAt'),
         max_rounds  = settings.get(c.KEY_MAX_ROUNDS, 0),
         start_score = settings.get(c.KEY_BASE_SCORE, 0),
         in_mode     = settings.get(c.KEY_INMODE),

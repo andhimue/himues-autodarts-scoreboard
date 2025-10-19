@@ -1,11 +1,8 @@
 # frontend/utils.py
-import pprint
-import traceback
 import logging
 from rich.logging import RichHandler
 from rich.console import Console
 from rich.theme import Theme
-import sys
 
 from . import shared_state_frontend as g
 

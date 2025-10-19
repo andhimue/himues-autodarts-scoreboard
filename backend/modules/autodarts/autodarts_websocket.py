@@ -4,7 +4,6 @@ import logging
 import json
 import requests
 from requests.exceptions import RequestException
-import time
 import ssl
 import websocket
 import logging

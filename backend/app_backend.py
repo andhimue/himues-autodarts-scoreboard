@@ -6,6 +6,7 @@ gevent.monkey.patch_all()
 
 import logging
 import os
+import sys
 import signal
 import gevent
 import ssl
@@ -14,8 +15,8 @@ from geventwebsocket.handler import WebSocketHandler
 from geventwebsocket.gunicorn.workers import GeventWebSocketWorker
 
 # --- Eigene Module ---
-from modules.core.webserver_handler import app, socketio
-from modules.core.app_setup import initialize_application
+from modules.core.app_routes import app, socketio
+from modules.core.app_setup import init_base_app, start_network_services
 from modules.core import shared_state as g
 
 #----------------------------------------------------------
@@ -58,34 +59,31 @@ class CustomGeventWebSocketWorker(GeventWebSocketWorker):
 # Dieser Block wird nur ausgeführt, wenn man "python3 app.py" startet.
 # Gunicorn ignoriert diesen Teil.
 if __name__ == "__main__":
-    initialize_application()
+    # 1. Nur Basiskonfiguration laden (ohne Netzwerk)
+    init_base_app(is_gunicorn=False)
 
-    logging.info('Starting internal web server on %s:%s', g.WEBSERVER_HOST_IP, g.WEBSERVER_HOST_PORT)
-    ssl_args = {}
+    # 2. Zertifikate prüfen (VOR dem Start der Netzwerkdienste)
+    logging.info("Prüfe SSL-Zertifikate...")
+    try:
+        base_dir = os.path.dirname(os.path.realpath(__file__))
+        path_to_crt = os.path.join(base_dir, g.CERT_FILE)
+        path_to_key = os.path.join(base_dir, g.KEY_FILE)
 
-    path_to_crt, path_to_key = None, None
-    if not g.WEBSERVER_DISABLE_HTTPS:
-        # Hinzufügen von Diagnose-Ausgaben
-        logging.info("HTTPS mode is enabled. Searching for certificate files...")
+        if not (os.path.exists(path_to_crt) and os.path.exists(path_to_key)):
+            logging.critical(f"FEHLER: Zertifikatsdateien nicht gefunden unter '{path_to_crt}' und '{path_to_key}'.")
+            sys.exit(1)
 
-        try:
-            base_dir = os.path.dirname(os.path.realpath(__file__))
-            path_to_crt = os.path.join(base_dir, "crt", "dummy.crt")
-            path_to_key = os.path.join(base_dir, "crt", "dummy.key")
+        logging.info("✅ SSL-Zertifikate gefunden.")
+        ssl_args = {'certfile': path_to_crt, 'keyfile': path_to_key}
+    except Exception as e:
+        logging.error(f"FEHLER beim Laden der Zertifikate: {e}")
+        sys.exit(1)
 
-            if os.path.exists(path_to_crt) and os.path.exists(path_to_key):
-                if g.DEBUG:
-                    logging.info("  --> Certificate files FOUND. Enabling SSL.")
-                ssl_args = {'certfile': path_to_crt, 'keyfile': path_to_key}
+    # 3. Erst jetzt die Netzwerkdienste starten
+    start_network_services()
 
-            else:
-                logging.info("  --> WARNING: Certificate files NOT FOUND. Server will start in HTTP mode.")
-
-        except Exception as e:
-            logging.error("  --> ERROR: An exception occurred while searching for certificates: %s", e)
-            pass
-
-    # Erstellt eine Instanz unseres eigenen Servers.
+    # 4. Webserver starten
+     # Erstellt eine Instanz unseres eigenen Servers.
     # Wichtig: Wir übergeben die `socketio.handler`, damit der Server
     # weiß, wie er mit WebSocket-Anfragen umgehen soll.
     http_server = CustomWSGIServer(

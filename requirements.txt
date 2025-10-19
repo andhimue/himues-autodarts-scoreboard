@@ -6,11 +6,11 @@ flask-cors
 Flask-SocketIO
 gevent-websocket
 gunicorn
-mariadb
 psutil
 pygame
 pyinstaller
 python-keycloak
+python-docx
 sockets
 the-mask
 websocket-client

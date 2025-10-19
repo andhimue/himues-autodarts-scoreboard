@@ -30,12 +30,10 @@ def process_match_bobs27(live_game_data):
 
     # Bob's 27-spezifische MatchInfo erstellen und zuweisen
     settings = live_game_data.get(c.KEY_SETTINGS, {})
-    event.match = MatchInfo(
-        game_mode    = "Bob's 27",
-        scoring_mode = settings.get(c.KEY_MODE, "Normal"),
-        order        = settings.get(c.KEY_ORDER, "1-20-Bull"),
-        max_rounds   = 21 # Inklusive Bull
-    )
+    event.match.game_mode = "Bob's 27"
+    event.match.scoring_mode = settings.get(c.KEY_MODE, "Normal")
+    event.match.order = settings.get(c.KEY_ORDER, "1-20-Bull")
+    event.match.max_rounds = 21 # Inklusive Bull
 
     # Spezifisches Runden-Ziel ermitteln
     current_round = event.turn.current_round

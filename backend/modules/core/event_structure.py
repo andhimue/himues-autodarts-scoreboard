@@ -7,6 +7,7 @@ class MatchInfo:
     """ Enthält alle statischen Regeln und Einstellungen, die zu Beginn des Matches festgelegt werden. """
     game_mode:        str           # Der endgültige Spielmodus (z.B. "X01", "Tactics", "Bermuda")
     use_db:           bool = True   # Flag, das die DB-Nutzung an das Frontend meldet
+    created_at:       str = None    # Der ISO-Zeitstempel des Match-Starts
 
     # Allgemeine Regeln
     legs_to_win:      int = 0       # Anzahl der Legs, die zum Gewinn des Matches benötigt werden.
@@ -79,7 +80,7 @@ class PlayerInfo:
 @dataclass
 class GameEvent:
     """ Der Haupt-Container für alle Events an das Frontend. """
-    event:            str           # Der Typ des Events, z.B. "match-started" oder "game-update".
+    event:            str           # Der Typ des Events, aktuell immer "game-update".
     game_state:       str           # Der aktuelle Zustand des Spiels, z.B. "throw", "busted", "leg_won".
     
     match:            MatchInfo     # Ein Objekt, das die statischen Regeln des Matches enthält.

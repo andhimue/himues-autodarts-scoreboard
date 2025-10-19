@@ -27,10 +27,8 @@ def process_match_rtw(live_game_data):
 
     # RTW-spezifische MatchInfo erstellen und zuweisen
     settings = live_game_data.get(c.KEY_SETTINGS, {})
-    event.match = MatchInfo(
-        game_mode = "RTW",
-        order     = settings.get(c.KEY_ORDER, "1-20-Bull")
-    )
+    event.match.game_mode = "RTW"
+    event.match.order = settings.get(c.KEY_ORDER, "1-20-Bull")
 
     # 3. RTW-spezifisches Runden-Ziel ermitteln und eintragen
     targets_list  = live_game_data.get(c.KEY_STATE, {}).get(c.KEY_TARGETS, [])

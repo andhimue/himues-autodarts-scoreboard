@@ -2,10 +2,7 @@
 
 # Event-Namen
 EVT_GAME_UPDATE   = "game-update"
-EVT_MATCH_STARTED = "match-started"
 EVT_MATCH_ENDED   = "match-ended"
-EVT_BOARD         = "board"
-EVT_WELCOME       = "welcome"
 EVT_LOBBY         = "lobby"
 
 # WebSocket Kanäle

@@ -5,11 +5,11 @@
  * Spielzustand, der vom Server gesendet wurde. Dient als "Single Source of Truth".
  */
  
-let appState = {};              // Das zentrale State-Objekt
+let appState = {
+    matchDurationDisplay: null,
+    rulesModalVisible: false
+};
 let backendConnected = false;
-
-let playerOrder = [];
-
 let socket = null;
 
 //--------------------------------------------------------------------
@@ -50,14 +50,22 @@ Object.assign(UI, {
     gameDetails: $('#info-area__details'),
     gameModeDisplay: $('#info-area__details-gamemode'),
     gameRulesDisplay: $('#info-area__details-gamerules'),
-    
+    gameRulesDisplayText: $('#info-area__details-gamerules-text'),
+
+    // --- mögliche Anzeigepositionen für den Timer ---
+    matchDuration: $('#info-area__match-duration'),
+    matchDurationRules: $('#info-area__details-match-duration-rules'),
+
     focusArea: $('#info-area__focus'),
     focusPlayerName: $('#info-area__focus-player-name'),
     focusScore: $('#info-area__focus-score'),
     focusScoreLabel: $('#info-area__focus-score-label'),
     focusSegmentGraphic: $('#info-area__focus-graphic'),
     dartsDisplay: $('#info-area__darts'),
-       
+
+    rulesModalOverlay: $('#rules-modal-overlay'),
+    rulesModalText: $('#rules-modal-text'),
+    rulesModalClose: $('#rules-modal-close'),
 
     // --- Spezifische Container für X01/Gotcha (falls noch benötigt) ---
     x01CardContainer: $('#x01-view-container .player-cards-section'),
@@ -92,6 +100,16 @@ Object.assign(UI, {
     "Bob's 27":         { updater: updateBobs27View,            container: '#bobs27-view-container' }
 };
 
+/**
+ * @summary Übersetzt die Anzeigenamen der Spielmodi in die internen Schlüssel des VIEW_HANDLERS-Objekts.
+ */
+const GAME_MODE_TO_HANDLER_KEY_MAP = {
+    "Cricket/Tactics": "Cricket", // Leitet beide auf den gleichen Handler um
+    "Around the Clock": "ATC",
+    "Round the World": "RTW",
+    "Count Up": "CountUp"
+};
+
 //--------------------------------------------------------------------
 
 /**
@@ -109,7 +127,7 @@ Object.assign(UI, {
     //-------------------------------------------------------------
 
     socket.on('connect', () => {
-        console.log('Erfolgreich mit dem Flask-SocketIO-Server verbunden!');
+        if (DEBUG) console.log('Erfolgreich mit dem Flask-SocketIO-Server verbunden!');
         // Zeigt an, dass das Frontend nun versucht, das Backend zu erreichen.
     });
 
@@ -121,7 +139,7 @@ Object.assign(UI, {
     //-------------------------------------------------------------
 
     socket.on('backend_connected', (data) => {
-        console.info("backend_connected")
+        if (DEBUG) console.info("backend_connected")
         // Sobald dieses Event vom Frontend-Server kommt, wissen wir,
         // dass die Verbindung zum Backend steht und die Daten da sind.
         backendConnected = true
@@ -142,7 +160,7 @@ Object.assign(UI, {
     //-------------------------------------------------------------
 
     socket.on('backend_disconnected', () => {
-        console.info("backend_disconnected")
+        if (DEBUG) console.info("backend_disconnected")
         console.warn('Vom Frontend-Server gemeldet: Verbindung zum Backend verloren!');
 
         backendConnected = false
@@ -159,20 +177,75 @@ Object.assign(UI, {
      * Orchestriert den gesamten Update-Prozess.
      */
     socket.on('status_update', (data) => {
-        console.log('Neuer Status vom Server empfangen:', data);
-
+        if (DEBUG) console.log('Neuer Status vom Server empfangen:', data);
+        
         // SCHRITT 1: Immer zuerst den globalen Zustand aktualisieren
         _cacheLatestServerState(data);
+        
+        // Nach dem Caching wird der Zustand für das Modal explizit zurückgesetzt.
+        // Das stellt sicher, dass es bei jedem Wurf geschlossen wird.
+        appState.rulesModalVisible = false;
         
         // SCHRITT 2: Auf spezielle Events reagieren (Overlays, Feuerwerk, etc.)
         _processGameNotifications();
         
         // SCHRITT 3: Den finalen Zustand auf dem Bildschirm zeichnen
         _routeToGameViewUpdater();
+
+        // SCHRITT 4: Den Spieldauer-Timer verwalten
+        _handleDurationTimer();
+
     });
 
+    // Zentraler Klick-Handler für das Regel-Modal
+    $('body').on('click', function(event) {
+        // Fall 1: Das Modal ist offen -> Jeder Klick schließt es.
+        if (UI.rulesModalOverlay.is(':visible')) {
+            UI.rulesModalOverlay.fadeOut(200);
+            return;
+        }
+
+        const clickedItem = $(event.target).closest('.game-mode-item');
+        
+        // Fall 2: Klick auf ein Spielmodus-Item auf dem Startbildschirm
+        if (clickedItem.length > 0) {
+            const displayGameMode = clickedItem.data('gamemode');
+            
+            // --- ANPASSUNG START ---
+            // Übersetze den Anzeigenamen in den internen Schlüssel
+            const handlerKey = GAME_MODE_TO_HANDLER_KEY_MAP[displayGameMode] || displayGameMode;
+            const handler = VIEW_HANDLERS[handlerKey];
+            // --- ANPASSUNG ENDE ---
+
+            if (handler) {
+                const descriptionHtml = $(handler.container).find('.game-rules-description').html();
+                if (descriptionHtml && descriptionHtml.trim().length > 0) {
+                    UI.rulesModalText.html(descriptionHtml);
+                    UI.rulesModalOverlay.fadeIn(200);
+                }
+            }
+            return;
+        }
+
+        // Fall 3: Klick irgendwo während ein Spiel läuft (und das Modal geschlossen ist)
+        if (UI.mainContainer.is(':visible')) {
+            // Ignoriere Klicks auf interaktive Elemente wie Buttons oder Links
+            if ($(event.target).closest('button, a').length > 0) {
+                return;
+            }
+
+            const gameMode = appState.match ? appState.match.game_mode : null;
+            const handler = gameMode ? VIEW_HANDLERS[gameMode] : null;
+
+            if (handler) {
+                const descriptionHtml = $(handler.container).find('.game-rules-description').html();
+                if (descriptionHtml && descriptionHtml.trim().length > 0) {
+                    UI.rulesModalText.html(descriptionHtml);
+                    UI.rulesModalOverlay.fadeIn(200);
+                }
+            }
+        }
+    });
 });
 
 //------------------------------------------------------------------
-
-

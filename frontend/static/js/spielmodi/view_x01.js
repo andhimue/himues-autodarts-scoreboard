@@ -39,7 +39,7 @@ function updateX01View(viewModel) {
     
     renderFocusArea(viewModel);
 
-    // Standardwert ist die TAbellenanzege
+    // Standardwert ist die Tabellenanzege
     let displayMode = 'table'
     // Hole den Standardwert aus der Jinja2-Konstante
     if (typeof SHOW_PLAYER_CARD === 'undefined' || SHOW_PLAYER_CARD) displayMode = 'card';
@@ -49,8 +49,6 @@ function updateX01View(viewModel) {
     } else if (URL_PARAMS.has('xt')){
         displayMode = 'table';
     }
-
-console.log(displayMode)
 
     if (displayMode === 'table') {
         UI.x01CardContainer.hide();

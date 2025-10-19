@@ -1,3 +1,5 @@
+// CMD_Frontend/static/js/cmd.js
+
 $(document).ready(function() {
     const socket = io();
     let dashboardInterval = null;

@@ -1,7 +1,6 @@
 # Frontend/modules/core/config_loader_frontend.py
 
 import os
-import sys
 from pathlib import Path
 from dotenv import load_dotenv
 
@@ -29,25 +28,38 @@ def load_and_parse_config_frontend():
     load_dotenv(dotenv_path=env_path)
 
     # Lese Werte und befülle das globale g-Objekt mit klarer Fallback-Logik
-    g.FLASK_HOST                       = os.getenv("FLASK_HOST", getattr(config, 'FLASK_HOST', '0.0.0.0'))
-    g.FLASK_DEBUG                      = _to_bool(os.getenv("FLASK_DEBUG", getattr(config, 'FLASK_DEBUG', False)))
-    flask_port                         = os.getenv("FLASK_PORT", getattr(config, 'FLASK_PORT', 6002))
+    g.CERT_FILE                       =                                                  getattr(config, 'CERT_FILE', g.CERT_FILE)
+    g.KEY_FILE                        =                                                  getattr(config, 'KEY_FILE', g.KEY_FILE)
 
-    # Sichere Umwandlung für FLASK_PORT
-    port_value = os.getenv("FLASK_PORT", getattr(config, 'FLASK_PORT', 6002))
+    g.SHOW_MATCH_DURATION             = _to_bool(os.getenv("SHOW_MATCH_DURATION",        getattr(config, 'SHOW_MATCH_DURATION', True)))
+    g.SHOW_DURATION_IN_GAMERULES      = _to_bool(os.getenv("SHOW_DURATION_IN_GAMERULES", getattr(config, 'SHOW_DURATION_IN_GAMERULES', False)))
+    g.MATCH_DURATION_INTERVAL         = os.getenv("MATCH_DURATION_INTERVAL",             getattr(config, 'MATCH_DURATION_INTERVAL', False))
+
+    g.CONFIG_EDITOR_USER              = os.getenv("CONFIG_EDITOR_USER",                  getattr(config, 'CONFIG_EDITOR_USER', 'admin'))
+    g.CONFIG_EDITOR_PASSWORD          = os.getenv("CONFIG_EDITOR_PASSWORD",              getattr(config, 'CONFIG_EDITOR_PASSWORD', 'admin'))
+    
+    g.WEBSERVER_HOST                  = os.getenv("WEBSERVER_HOST_HOST",                 getattr(config, 'WEBSERVER_HOST_HOST', '0.0.0.0'))
+    webserver_port                    = os.getenv("WEBSERVER_PORT",                      getattr(config, 'WEBSERVER_PORT', 6002))
+
+    g.BACKEND_HOST                    = os.getenv("BACKEND_HOST",                        getattr(config, 'BACKEND_HOST', '127.0.0.1'))
+    backend_port                      = os.getenv("BACKEND_PORT",                        getattr(config, 'BACKEND_PORT', 6001))
+
+    # Sichere Umwandlung für Ports
     try:
-        g.FLASK_PORT = int(flask_port)
+        g.WEBSERVER_PORT = int(webserver_port)
     except (ValueError, TypeError):
-        g.FLASK_PORT = 6002 # Sicherer Standardwert
-        
-    g.SERVER_ADDRESS                   = os.getenv("SERVER_ADDRESS", getattr(config, 'SERVER_ADDRESS', "127.0.0.1:6001"))
-    g.WEBSERVER_DISABLE_HTTPS_FRONTEND = _to_bool(os.getenv("WEBSERVER_DISABLE_HTTPS_FRONTEND", getattr(config, 'WEBSERVER_DISABLE_HTTPS_FRONTEND', False)))
+        g.WEBSERVER_PORT = 6002 # Sicherer Standardwert
 
-    g.DEBUG                            = _to_bool(os.getenv("DEBUG", getattr(config, 'DEBUG', 0)))
+    try:
+        g.BACKEND_PORT = int(backend_port)
+    except (ValueError, TypeError):
+        g.BACKEND_PORT = 6001 # Sicherer Standardwert
 
-    g.SHOW_ONLY_FIREWORK_VIDEO         = _to_bool(os.getenv("SHOW_ONLY_FIREWORK_VIDEO", getattr(config, 'SHOW_ONLY_FIREWORK_VIDEO', False)))
-    g.FORCE_STABLE_SORTING             = _to_bool(os.getenv("FORCE_STABLE_SORTING", getattr(config, 'FORCE_STABLE_SORTING', True)))
-    g.SHOW_PLAYER_CARD                 = _to_bool(os.getenv("SHOW_PLAYER_CARD", getattr(config, 'SHOW_PLAYER_CARD', False)))
+    g.DEBUG                            = _to_bool(os.getenv("DEBUG",                     getattr(config, 'DEBUG', 0)))
+
+    g.SHOW_ONLY_FIREWORK_VIDEO         = _to_bool(os.getenv("SHOW_ONLY_FIREWORK_VIDEO",  getattr(config, 'SHOW_ONLY_FIREWORK_VIDEO', False)))
+    g.FORCE_STABLE_SORTING             = _to_bool(os.getenv("FORCE_STABLE_SORTING",      getattr(config, 'FORCE_STABLE_SORTING', True)))
+    g.SHOW_PLAYER_CARD                 = _to_bool(os.getenv("SHOW_PLAYER_CARD",          getattr(config, 'SHOW_PLAYER_CARD', False)))
 
     # Für Listen ist getattr die beste Methode, da sie nicht einfach aus .env geladen werden können
-    g.BROWSER_NAMES_TO_SHOW_ONLY_VIDEO = getattr(config, 'BROWSER_NAMES_TO_SHOW_ONLY_VIDEO', ["Tizen 5.0"])
+    g.BROWSER_NAMES_TO_SHOW_ONLY_VIDEO =                                                 getattr(config, 'BROWSER_NAMES_TO_SHOW_ONLY_VIDEO', ["Tizen 5.0"])

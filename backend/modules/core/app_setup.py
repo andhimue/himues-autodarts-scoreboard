@@ -12,8 +12,7 @@ from . import shared_state as g
 from ..core import security_module
 from .config_loader import load_and_parse_config
 from .utils_backend import check_already_running, setup_logger
-from ..autodarts.autodarts_keycloak_client import AutodartsKeycloakClient
-from ..autodarts.websocket_handlers import connect_autodarts
+from ..autodarts.autodarts_websocket import connect_autodarts
 
 #--------------------------------------
 
@@ -39,7 +38,7 @@ def _validate_configuration():
 
     
     # Bedingte Prüfung für die Datenbank
-    if g.USE_DATABASE:
+    if g.USE_DATABASE and g.DATABASE_TYPE == 'mariadb':
         db_required_vars = [
             'DB_USER',
             'DB_PASSWORD',
@@ -84,31 +83,24 @@ def shutdown_cleanup():
     sys.stderr.write("[SHUTDOWN] Auf Wiedersehen!\n")
     sys.stderr.flush()
 
+
 #--------------------------------------
 
-def initialize_application():
-    """Führt alle notwendigen Schritte zur Initialisierung der Backend-Anwendung aus.
-
-        Dies umfasst das Laden der Konfiguration, das Einrichten des Loggings, 
-        das Starten des Keycloak-Authentifizierungs-Clients und den Aufbau der 
-        WebSocket-Verbindung zum Autodarts-Server.
+def init_base_app(is_gunicorn):
+    """
+    Führt die grundlegende Initialisierung aus: Logging, Konfiguration laden, Banner anzeigen.
+    Keine Netzwerkverbindungen.
     """
     setup_logger()
     
     os.environ['SSL_CERT_FILE'] = certifi.where()
     g.BACKEND_DIR = os.path.dirname(os.path.dirname(os.path.dirname(os.path.realpath(__file__))))
     
-    setup_logger()
-    is_gunicorn = "gunicorn" in sys.argv[0]
     load_and_parse_config()
     _validate_configuration()
     atexit.register(shutdown_cleanup)
 
-    is_gunicorn = "gunicorn" in sys.argv[0]
-    if is_gunicorn:
-        gunicorn_msg = 'RUNNING MODE: Gunicorn'
-    else:
-        gunicorn_msg = 'RUNNING MODE: Direct execution'
+    gunicorn_msg = 'RUNNING MODE: Gunicorn' if is_gunicorn else 'RUNNING MODE: Direct execution'
 
     banner_message = f"""
 
@@ -126,11 +118,27 @@ SUPPORTED GAME-VARIANTS: {", ".join(g.SUPPORTED_GAME_VARIANTS)}
     if not is_gunicorn and check_already_running():
         sys.exit()
 
+#--------------------------------------
+
+def start_network_services():
+    """Initialisiert alle ausgehenden Netzwerkverbindungen (Keycloak, WebSocket)."""
     try:
-#        g.keycloak_client = AutodartsKeycloakClient(username=g.AUTODARTS_USER_EMAIL, password=g.AUTODARTS_USER_PASSWORD, client_id=g.AUTODARTS_CLIENT_ID, client_secret=g.AUTODARTS_CLIENT_SECRET, debug=False)
-#        g.keycloak_client.start()
+        logging.info("Starte Netzwerkdienste...")
         security_module.start()
         connect_autodarts(g.AUTODARTS_CERT_CHECK)
+        logging.info("✅ Netzwerkdienste erfolgreich gestartet.")
     except Exception as e:
-        logging.error("Initialisierung fehlgeschlagen: %s", e)
+        logging.error("Initialisierung der Netzwerkdienste fehlgeschlagen: %s", e)
         sys.exit(1)
+
+#--------------------------------------
+
+def initialize_application():
+    """
+    Haupt-Initialisierungsfunktion für Gunicorn, die alles in der richtigen Reihenfolge ausführt.
+    """
+    is_gunicorn = "gunicorn" in sys.argv[0]
+    init_base_app(is_gunicorn)
+    # Bei Gunicorn erfolgt die Zertifikatsprüfung in der gunicorn.conf.py,
+    # daher können die Netzwerkdienste direkt gestartet werden.
+    start_network_services()

@@ -58,6 +58,23 @@ function updateCricketView(viewModel) {
         config
     );
 
+    // 1. Setze zuerst den Zustand für alle Spalten zurück
+    $(tableId).find('th[class*="--hits-"], td[class*="--hits-"]').removeClass('cricket-target-closed');
+
+    // 2. Finde die Spalten, die von allen Spielern geschlossen wurden
+    if (match.targets && players.length > 0) {
+        const closedTargets = match.targets.filter(target => 
+            players.every(player => player.hits[target] >= 3)
+        );
+
+        // 3. Wende die CSS-Klasse auf die geschlossenen Spalten an
+        closedTargets.forEach(target => {
+            const headerSelector = `.game-table__header--hits-${target}`;
+            const cellSelector = `.game-table__cell--hits-${target}`;
+            $(tableId).find(`${headerSelector}, ${cellSelector}`).addClass('cricket-target-closed');
+        });
+    }
+    
     // Blende die "ø Gesamt"-Spalte bei Bedarf aus
     const useDB = appState.match.use_db;
     toggleTableColumn(tableId, 'avg-g', useDB);

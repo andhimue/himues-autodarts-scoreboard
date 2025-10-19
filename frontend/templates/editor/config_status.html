@@ -1,0 +1,21 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+    <meta charset="UTF-8">
+    <title>Status</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/config_editor.css') }}">
+    <script>
+        // Nach 5 Sekunden versuchen, zur Hauptseite zurückzukehren
+        setTimeout(() => {
+            window.location.href = '/';
+        }, 5000);
+    </script>
+</head>
+<body class="center-box-container">
+    <div class="message-box">
+        <h1>Gespeichert!</h1>
+        <p>{{ message }}</p>
+        <div class="spinner"></div>
+    </div>
+</body>
+</html>

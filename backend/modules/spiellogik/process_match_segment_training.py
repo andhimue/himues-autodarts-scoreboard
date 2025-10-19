@@ -40,12 +40,9 @@ def process_match_segment_training(live_game_data):
 
     # Segment Training-spezifische MatchInfo erstellen und zuweisen
     settings = live_game_data.get(c.KEY_SETTINGS, {})
-
-    event.match = MatchInfo(
-        game_mode        = "Segment Training",
-        ends_after_type  = c.KEY_HITS if settings.get(c.KEY_HITS) else c.KEY_DARTS,
-        ends_after_value = settings.get(c.KEY_HITS) or settings.get('throws')
-    )
+    event.match.game_mode = "Segment Training"
+    event.match.ends_after_type = c.KEY_HITS if settings.get(c.KEY_HITS) else c.KEY_DARTS
+    event.match.ends_after_value = settings.get(c.KEY_HITS) or settings.get('throws')
 
     # Spezielles TargetInfo-Objekt für das Runden-Ziel erstellen
     target_data = live_game_data.get(c.KEY_STATE, {}).get(c.KEY_TARGET, {})
@@ -94,7 +91,6 @@ def update_segment_training_statistic_after_leg(event_data):
         if not conn: 
             return
             
-        cursor = conn.cursor(dictionary=True)
         try:
             match_id = event_data.get(c.KEY_ID)
             current_leg = event_data.get(c.KEY_LEG)
@@ -113,9 +109,9 @@ def update_segment_training_statistic_after_leg(event_data):
                 leg_hit_rate = leg_stats.get(c.KEY_HITRATE, 0.0)
 
                 # Hole oder erstelle den Spieler in der 'players_segment_training' Tabelle
-                player_info = get_player_data_from_db(cursor, player_name, game_mode=game_mode)
+                player_info = get_player_data_from_db(conn, player_name, game_mode=game_mode)
                 if not player_info:
-                    player_db_id = create_guest_player(cursor, player_name, game_mode=game_mode)
+                    player_db_id = create_guest_player(conn, player_name, game_mode=game_mode)
                     conn.commit()
                     if player_db_id is None: 
                         continue
@@ -126,10 +122,10 @@ def update_segment_training_statistic_after_leg(event_data):
                 # Speichere die Leg-Daten in der 'games_history_atc' Tabelle
                 db_leg_stats = {'hit_rate': leg_hit_rate, 'darts': leg_darts}
                 if leg_darts > 0:
-                    save_leg_to_history(cursor, player_db_id, match_id, current_leg, db_leg_stats, game_mode=game_mode)
+                    save_leg_to_history(conn, player_db_id, match_id, current_leg, db_leg_stats, game_mode=game_mode)
 
                 # Berechne die neue langfristige Hit-Rate und aktualisiere die 'players_atc' Tabelle
-                new_overall_hit_rate = calculate_and_update_guest_average(cursor, player_db_id, game_mode=game_mode)
+                new_overall_hit_rate = calculate_and_update_guest_average(conn, player_db_id, game_mode=game_mode)
 
                 # Aktualisiere den In-Memory-Cache für die sofortige Anzeige im nächsten Event
                 if player_name_lower in g.player_data_map:
