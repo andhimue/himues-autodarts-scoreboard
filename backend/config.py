@@ -2,7 +2,7 @@
 # Zentrale Konfigurations- und Standardwerte für das Backend
 
 
-#Die folgenden Werte könenn auch in einr Datei .env im Hauptverzeichnis des Backends konfiguriert werden
+#Die folgenden Werte könenn auch in einer Datei .env im Hauptverzeichnis des Backends konfiguriert werden
 AUTODARTS_USER_EMAIL=""
 AUTODARTS_USER_PASSWORD=""
 AUTODARTS_BOARD_ID=""
