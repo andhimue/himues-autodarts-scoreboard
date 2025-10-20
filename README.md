@@ -1,11 +1,11 @@
-# <span class="header-section-number">1</span> Himues Darts Scoreboard - Installationsanleitung
+# <span class="header-section-number">1</span> Himues Autodarts Scoreboard - Installationsanleitung
 
 Herzlich willkommen! Diese Anleitung hilft Ihnen, das **Himues Darts
 Scoreboard** auf Ihrem System zu installieren und zu konfigurieren.
 
-# <span class="header-section-number">2</span> Was ist das Himues Darts Scoreboard?
+# <span class="header-section-number">2</span> Was ist das Himues Autodarts Scoreboard?
 
-Das **Himues Darts Scoreboard** ist eine Webanwendung, die als
+Das **Himues Autodarts Scoreboard** ist eine Webanwendung, die als
 alternative, großformatige Anzeige für Ihre Autodarts-Spiele dient. Sie
 wurde speziell dafür entwickelt, auf einem Fernseher oder einem größeren
 Monitor im Browser zu laufen.
@@ -31,7 +31,7 @@ Wenn Sie eigene Credentials haben, können Sie diese entweder in der backend/con
     AUTODARTS_CLIENT_ID     = ""  
     AUTODARTS_CLIENT_SECRET =""  
 
-Ohne Credentials ist **Himues Darts Scoreboard** leider nicht nutzbar :-(
+Ohne Credentials ist **Himues Autodarts Scoreboard** leider nicht nutzbar :-(
 
 # <span class="header-section-number">4</span> Screenshoots
 
@@ -270,4 +270,4 @@ Innerhalb der config\_frontend.py kann der Config-Editor mit Usernamen und Passw
 # <span class="header-section-number">11</span> Gesamtdokumentation
 
 Die Gesamtdokumentation des Projektes ist im Word-Dokument:
-Projektdokumentation Himues Darts Scoreboard Vx.x.docx zu finden
+Projektdokumentation Himues Autodarts Scoreboard Vx.x.docx zu finden
