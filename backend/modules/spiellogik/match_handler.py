@@ -99,18 +99,23 @@ def orchestrate_match_start_and_finish(match_event_data, websocket_connection):
                 logging.error('Fetching initial match-data failed: %s', e)
 
         elif match_event_data.get(c.KEY_EVENT) in ['finish', 'delete']:
+            # Prüfen, ob das beendete Match auch das aktive ist!
+            # Wenn ein altes "Geister-Match" beendet wird, darf das laufende Spiel nicht gestört werden.
+            if g.active_match_id and match_id == g.active_match_id:
+                if g.DEBUG:
+                    logging.info('Stop listening to match: %s', match_id)
+                        
+                g.active_match_id = None
 
-            if g.DEBUG:
-                logging.info('Stop listening to match: %s', match_event_data.get(c.KEY_ID))
-                    
-            g.active_match_id = None
-
-            g.player_data_map = {}
-            g.last_message_to_frontend = {}
-            
-            # Sendet ein leeres Event, um das Frontend zurückzusetzen
-            reset_event = { c.KEY_EVENT: c.EVT_MATCH_ENDED, c.KEY_PLAYERS: [] }
-            broadcast(reset_event)
+                g.player_data_map = {}
+                g.last_message_to_frontend = {}
+                
+                # Sendet ein leeres Event, um das Frontend zurückzusetzen
+                reset_event = { c.KEY_EVENT: c.EVT_MATCH_ENDED, c.KEY_PLAYERS: [] }
+                broadcast(reset_event)
+            else:
+                if g.DEBUG:
+                    logging.info('Ignoriere finish/delete für inaktives Match ID: %s (Aktiv: %s)', match_id, g.active_match_id)
 
 #----------------------------------------------------
 

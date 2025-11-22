@@ -48,7 +48,10 @@ def _validate_configuration():
         ]
         for var in db_required_vars:
             value = getattr(g, var, None)
-            logging.info("%s = %s", var, value)
+
+            if var != "DB_PASSWORD":
+                logging.info("%s = %s", var, value)
+
             if value is None or value == '':
                 missing_vars.append(var)
 
