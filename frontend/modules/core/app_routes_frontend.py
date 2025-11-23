@@ -153,6 +153,38 @@ def static_files(filename):
     response.cache_control.immutable = True
     return response
 
+#------------------------------------------
+# --- Statistik-Routen ---
+#------------------------------------------
+
+@app.route('/statistics')
+@app.route('/statistics/')
+def statistics():
+    """Zeigt die Statistik-Seite an (HTML)."""
+    return render_template('statistics.html', ignore_players=g.STATS_IGNORE_PLAYERS)
+
+@app.route('/frontend-api/statistics')
+@app.route('/frontend-api/statistics/')
+def proxy_statistics():
+    """
+    Proxy-Endpunkt: Ruft die Daten vom Backend ab und reicht sie an den Browser weiter.
+    Löst alle Port- und CORS-Probleme.
+    """
+    try:
+        # Interne Kommunikation Backend <-> Frontend (Server zu Server)
+        # Hier nutzen wir den internen Host/Port aus der Config
+        backend_url = f"https://{g.BACKEND_HOST}:{g.BACKEND_PORT}/api/statistics"
+        
+        # Request an Backend senden (SSL-Verify ignorieren für interne Kommunikation oft nötig, 
+        # da Zertifikate oft auf Hostnamen ausgestellt sind, wir aber evtl. IP nutzen)
+        response = requests.get(backend_url, verify=False, timeout=5)
+        
+        # Status und JSON-Inhalt 1:1 an den Browser weiterleiten
+        return Response(response.content, status=response.status_code, mimetype='application/json')
+        
+    except requests.exceptions.RequestException as e:
+        logging.error(f"Fehler beim Abrufen der Statistiken vom Backend: {e}")
+        return jsonify({'error': 'Backend nicht erreichbar'}), 503
 #---------------------------------
 
 # WICHTIG: Importiere die Socket.IO-Handler am Ende, damit sie sich

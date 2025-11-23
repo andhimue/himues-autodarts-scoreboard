@@ -1,16 +1,25 @@
 #!/usr/bin/env python3
-# update.py - Standard Update-Skript für GitHub (origin)
+# update.py - Standard Update-Skript für GitHub (origin) mit DB-Migration
 import os
 import sys
 import subprocess
+import shutil
 
 # --- Konfiguration ---
 SCRIPT_DIR = os.path.dirname(os.path.realpath(__file__))
 VENV_DIR = os.path.join(SCRIPT_DIR, "venv")
+BACKEND_DIR = os.path.join(SCRIPT_DIR, "backend")
 BACKEND_SERVICE = "himues-scoreboard-backend.service"
 FRONTEND_SERVICE = "himues-scoreboard-frontend.service"
 TARGET_REMOTE = "origin"
 TARGET_BRANCH = "main"
+
+# Diese Dateien werden vor dem Reset gesichert und danach wiederhergestellt
+FILES_TO_PRESERVE = [
+    "backend/config.py",
+    "backend/.env",
+    "frontend/config_frontend.py"
+]
 
 # --- Farbdefinitionen ---
 class color:
@@ -43,6 +52,118 @@ def get_service_mode():
     else:
         return "user", ["systemctl", "--user"]
 
+def backup_config_files():
+    """Sichert Konfigurationsdateien in temporäre .bak Dateien."""
+    print_info("Sichere lokale Konfigurationsdateien...")
+    for rel_path in FILES_TO_PRESERVE:
+        full_path = os.path.join(SCRIPT_DIR, rel_path)
+        backup_path = full_path + ".update_bak"
+        if os.path.exists(full_path):
+            shutil.copy2(full_path, backup_path)
+
+def restore_config_files():
+    """Stellt Konfigurationsdateien aus .bak Dateien wieder her."""
+    print_info("Stelle lokale Konfigurationsdateien wieder her...")
+    for rel_path in FILES_TO_PRESERVE:
+        full_path = os.path.join(SCRIPT_DIR, rel_path)
+        backup_path = full_path + ".update_bak"
+        if os.path.exists(backup_path):
+            shutil.move(backup_path, full_path)
+
+def update_database_schema():
+    """
+    Führt Schema-Updates (Spalten hinzufügen) und Daten-Migrationen durch.
+    """
+    print_header("Datenbank-Schema & Migration")
+    
+    python_executable = os.path.join(VENV_DIR, "bin", "python")
+    
+    # 1. Schema-Update (Spalten 'is_win' hinzufügen falls fehlend)
+    # Inline-Script, um die Umgebung der venv zu nutzen
+    schema_script = """
+import os
+import sys
+import sqlite3
+try:
+    import mariadb
+except ImportError:
+    mariadb = None
+from dotenv import load_dotenv
+
+SCRIPT_DIR = os.getcwd()
+BACKEND_DIR = os.path.join(SCRIPT_DIR, "backend")
+ENV_FILE = os.path.join(BACKEND_DIR, ".env")
+CONFIG_FILE = os.path.join(BACKEND_DIR, "config.py")
+
+def get_config():
+    c = {'DATABASE_TYPE': 'sqlite', 'DB_HOST': '127.0.0.1', 'DB_PORT': 3306, 'DB_USER': 'root', 'DB_PASSWORD': '', 'DB_DATABASE': 'himues_darts_db'}
+    if os.path.exists(CONFIG_FILE):
+        try:
+            cf = {}
+            with open(CONFIG_FILE, 'r') as f: exec(f.read(), {}, cf)
+            for k in c.keys(): 
+                if k in cf: c[k] = cf[k]
+        except: pass
+    if os.path.exists(ENV_FILE):
+        load_dotenv(ENV_FILE)
+        for k in c.keys():
+            v = os.getenv(k)
+            if v is not None: c[k] = v
+    c['DATABASE_TYPE'] = str(c.get('DATABASE_TYPE', 'sqlite')).lower()
+    return c
+
+def add_column_if_missing(cursor, table, col_def):
+    try:
+        # Simpler Check: Versuche Spalte hinzuzufügen. Wenn Fehler -> existiert wohl schon.
+        # Bei SQLite und MariaDB ist 'ADD COLUMN' valide.
+        cursor.execute(f"ALTER TABLE {table} ADD COLUMN {col_def}")
+        print(f"  -> Spalte 'is_win' hinzugefügt zu {table}")
+    except Exception:
+        # Ignorieren, wenn Spalte schon da ist
+        pass
+
+cfg = get_config()
+conn = None
+
+try:
+    if cfg['DATABASE_TYPE'] == 'sqlite':
+        db = os.path.join(BACKEND_DIR, "sqlite", "darts_scoreboard.db")
+        conn = sqlite3.connect(db)
+    elif cfg['DATABASE_TYPE'] == 'mariadb' and mariadb:
+        conn = mariadb.connect(user=cfg['DB_USER'], password=cfg['DB_PASSWORD'], host=cfg['DB_HOST'], port=int(cfg['DB_PORT']), database=cfg['DB_DATABASE'])
+    
+    if conn:
+        cur = conn.cursor()
+        tables = ['games_history_x01', 'games_history_cricket', 'games_history_tactics', 'games_history_atc', 'games_history_countup', 'games_history_segment_training']
+        
+        # Definition je nach DB Typ (Integer für SQLite, TinyInt für MariaDB)
+        col_def = "is_win TINYINT(1) NOT NULL DEFAULT 0" if cfg['DATABASE_TYPE'] == 'mariadb' else "is_win INTEGER NOT NULL DEFAULT 0"
+        
+        for t in tables:
+            add_column_if_missing(cur, t, col_def)
+        conn.commit()
+        conn.close()
+except Exception as e:
+    print(f"Schema Update Fehler: {e}")
+"""
+    
+    print_info("Prüfe und korrigiere Tabellenstruktur (is_win)...")
+    try:
+        subprocess.run([python_executable, "-c", schema_script], cwd=SCRIPT_DIR, check=True)
+    except subprocess.CalledProcessError:
+        print_warning("Schema-Update-Check mit Warnung beendet (evtl. DB nicht erreichbar).")
+
+    # 2. Daten-Migration (Gewinner nachträglich berechnen)
+    migrate_script = os.path.join(SCRIPT_DIR, "migrate_database.py")
+    if os.path.exists(migrate_script):
+        print_info("Führe Daten-Migration aus (migrate_database.py)...")
+        run_command([python_executable, migrate_script], cwd=SCRIPT_DIR)
+    else:
+        print_warning("migrate_database.py nicht gefunden. Überspringe Daten-Migration.")
+
+
+# --- HAUPTPROGRAMM ---
+
 def main():
     print_header("Himues Darts Scoreboard - Update (GitHub)")
     
@@ -60,17 +181,15 @@ def main():
 
     # 2. Git Update
     print_header("Aktualisiere Quellcode...")
-    print_info("Sichere lokale Änderungen (Stash)...")
-    run_command(["git", "stash"], cwd=SCRIPT_DIR)
-    
+    backup_config_files()
+
     print_info(f"Lade neuesten Stand von '{TARGET_REMOTE}'...")
     run_command(["git", "fetch", TARGET_REMOTE], cwd=SCRIPT_DIR)
     
     print_info(f"Setze lokalen Stand hart auf '{TARGET_REMOTE}/{TARGET_BRANCH}' zurück...")
     run_command(["git", "reset", "--hard", f"{TARGET_REMOTE}/{TARGET_BRANCH}"], cwd=SCRIPT_DIR)
     
-    print_info("Stelle lokale Änderungen wieder her (Stash Pop)...")
-    run_command(["git", "stash", "pop"], cwd=SCRIPT_DIR, ignore_errors=True)
+    restore_config_files()
     print_success("Quellcode aktualisiert.")
 
     # 3. Abhängigkeiten
@@ -82,7 +201,10 @@ def main():
     else:
         print_warning(f"Virtuelle Umgebung nicht gefunden unter: {VENV_DIR}")
 
-    # 4. Dienste starten
+    # 4. Datenbank Updates (Schema & Migration)
+    update_database_schema()
+
+    # 5. Dienste starten
     print_header("Starte Dienste neu...")
     run_command(systemctl_cmd + ["daemon-reload"]) 
     run_command(systemctl_cmd + ["start", BACKEND_SERVICE])
@@ -90,109 +212,6 @@ def main():
     print_success("Dienste gestartet.")
 
     print_header("Update erfolgreich!")
-    print_info(f"Überprüfe die Logs mit: ./show-logs.py")
-
-if __name__ == "__main__":
-    main()#!/usr/bin/env python3
-
-#
-# Dieses Script updated himues-scoreboard von github
-# und behält dabei die Konfiguration bei
-#
-
-
-import os
-import sys
-import subprocess
-import time
-
-# --- Konfiguration ---
-SCRIPT_DIR = os.path.dirname(os.path.realpath(__file__))
-VENV_DIR = os.path.join(SCRIPT_DIR, "venv")
-BACKEND_SERVICE = "himues-scoreboard-backend.service"
-FRONTEND_SERVICE = "himues-scoreboard-frontend.service"
-
-# --- Farbdefinitionen ---
-class color:
-    HEADER = '\033[95m'
-    BLUE = '\033[94m'
-    GREEN = '\033[92m'
-    YELLOW = '\033[93m'
-    RED = '\033[91m'
-    END = '\033[0m'
-    BOLD = '\033[1m'
-
-def print_header(message): print(f"\n{color.HEADER}{color.BOLD}--- {message} ---{color.END}")
-def print_success(message): print(f"{color.GREEN}✅ {message}{color.END}")
-def print_info(message): print(f"{color.BLUE}ℹ️  {message}{Color.END}")
-def print_warning(message): print(f"{color.YELLOW}⚠️  {message}{color.END}")
-def print_error(message): print(f"{color.RED}❌ {message}{color.END}"); sys.exit(1)
-
-def run_command(command, cwd=None, shell=False, ignore_errors=False):
-    """Führt einen Befehl aus und gibt bei Fehler ab (außer ignore_errors=True)."""
-    try:
-        subprocess.check_call(command, cwd=cwd, shell=shell)
-    except subprocess.CalledProcessError as e:
-        if not ignore_errors:
-            print_error(f"Fehler bei Befehl: {' '.join(command) if isinstance(command, list) else command}")
-        else:
-            print_warning(f"Warnung bei Befehl: {' '.join(command) if isinstance(command, list) else command}")
-
-def get_service_mode():
-    """Prüft, ob wir Root sind (System-Dienste) oder User (User-Dienste)."""
-    if os.geteuid() == 0:
-        return "system", ["systemctl"]
-    else:
-        return "user", ["systemctl", "--user"]
-
-def main():
-    print_header("Himues Darts Scoreboard - Update Assistent")
-    
-    # 1. Prüfen, ob wir in einem Git-Repo sind
-    if not os.path.exists(os.path.join(SCRIPT_DIR, ".git")):
-        print_error("Kein Git-Repository gefunden! Updates funktionieren nur, wenn das Projekt via 'git clone' installiert wurde.")
-
-    service_mode, systemctl_cmd = get_service_mode()
-    print_info(f"Update-Modus: {service_mode.upper()}-Dienste")
-
-    # 2. Dienste stoppen
-    print_header("Stoppe Dienste...")
-    run_command(systemctl_cmd + ["stop", BACKEND_SERVICE], ignore_errors=True)
-    run_command(systemctl_cmd + ["stop", FRONTEND_SERVICE], ignore_errors=True)
-    print_success("Dienste gestoppt.")
-
-    # 3. Git Pull (Code aktualisieren)
-    print_header("Aktualisiere Quellcode via Git...")
-    # Stash: Speichert lokale Änderungen temporär, um Konflikte zu vermeiden
-    print_info("Sichere lokale Änderungen (Stash)...")
-    run_command(["git", "stash"], cwd=SCRIPT_DIR)
-    
-    print_info("Lade Updates herunter (Pull)...")
-    run_command(["git", "pull"], cwd=SCRIPT_DIR)
-    
-    # Versuchen, lokale Änderungen wieder anzuwenden. Kann zu Konflikten führen, 
-    # wenn config.py geändert wurde, aber meistens klappt es oder ist für .env egal.
-    print_info("Stelle lokale Änderungen wieder her (Stash Pop)...")
-    run_command(["git", "stash", "pop"], cwd=SCRIPT_DIR, ignore_errors=True)
-    print_success("Quellcode aktualisiert.")
-
-    # 4. Abhängigkeiten aktualisieren
-    print_header("Aktualisiere Python-Abhängigkeiten...")
-    pip_executable = os.path.join(VENV_DIR, "bin", "pip")
-    if not os.path.exists(pip_executable):
-        print_error(f"Virtuelle Umgebung nicht gefunden unter: {VENV_DIR}")
-    
-    run_command([pip_executable, "install", "-r", "requirements.txt"], cwd=SCRIPT_DIR)
-    print_success("Abhängigkeiten aktualisiert.")
-
-    # 5. Dienste neu starten
-    print_header("Starte Dienste neu...")
-    run_command(systemctl_cmd + ["daemon-reload"]) # Sicherheitshalber, falls Service-Files geändert wurden
-    run_command(systemctl_cmd + ["start", BACKEND_SERVICE])
-    run_command(systemctl_cmd + ["start", FRONTEND_SERVICE])
-    print_success("Dienste gestartet.")
-
-    print_header("Update erfolgreich abgeschlossen!")
     print_info(f"Überprüfe die Logs mit: ./show-logs.py")
 
 if __name__ == "__main__":

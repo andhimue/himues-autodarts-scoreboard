@@ -1,0 +1,170 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+    <meta charset="UTF-8">
+    <title>Spieler-Statistiken</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+    <style>
+        body { overflow: auto; } /* Scrollen erlauben */
+        .stats-container {
+            width: 95%; /* Nutzung der vollen Breite für viele Spalten */
+            max-width: 1800px;
+            margin: 4rem auto;
+            background-color: var(--background-secondary);
+            padding: 2rem;
+            border-radius: 1rem;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.5);
+        }
+        h1 { text-align: center; color: var(--primary-color); margin-bottom: 2rem; }
+        
+        .stats-table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 1rem;
+        }
+        .stats-table th, .stats-table td {
+            border: 1px solid var(--border-color);
+            padding: 0.8rem; /* Etwas kompakteres Padding */
+            text-align: center;
+            font-size: 1.4rem;
+        }
+        .stats-table th { background-color: var(--background-tertiary); color: var(--text-secondary); }
+        .player-name { text-align: left !important; font-weight: bold; color: var(--text-light); min-width: 150px; }
+        
+        .back-button {
+            display: block;
+            width: 200px;
+            margin: 2rem auto;
+            text-align: center;
+            padding: 1rem;
+            background-color: var(--background-tertiary);
+            color: var(--text-light);
+            text-decoration: none;
+            border-radius: 0.5rem;
+            font-size: 1.2rem;
+            border: 1px solid var(--border-color);
+        }
+        .back-button:hover { background-color: var(--primary-color); border-color: var(--primary-color); }
+    </style>
+
+    <script>
+        const IGNORE_PLAYERS = {{ ignore_players | tojson }};
+    </script>
+</head>
+<body>
+    <div class="stats-container">
+        <h1>Langzeit-Statistiken</h1>
+        
+        <table class="stats-table" id="stats-table">
+            <thead>
+                <tr>
+                    <th rowspan="2">Spieler</th>
+                    <th colspan="5">X01</th>
+                    <th colspan="3">Cricket</th>
+                    <th colspan="3">Tactics</th>
+                </tr>
+                <tr>
+                    <th>ø Average (PPR)</th>
+                    <th>Legs Gespielt</th>
+                    <th>Legs Gewonnen</th>
+                    <th>Matches Gespielt</th>
+                    <th>Matches Gewonnen</th>
+                    
+                    <th>ø MPR</th>
+                    <th>Legs Gespielt</th>
+                    <th>Legs Gewonnen</th>
+
+                    <th>ø MPR</th>
+                    <th>Legs Gespielt</th>
+                    <th>Legs Gewonnen</th>
+                </tr>
+            </thead>
+            <tbody>
+                </tbody>
+        </table>
+
+        <a href="/" class="back-button">Zurück zum Scoreboard</a>
+    </div>
+
+<script>
+        document.addEventListener('DOMContentLoaded', () => {
+            const tableBody = document.querySelector('#stats-table tbody');
+            const apiUrl = '/frontend-api/statistics';
+
+            console.log("Fetching stats from:", apiUrl);
+
+            fetch(apiUrl)
+                .then(response => {
+                    if (!response.ok) {
+                        throw new Error(`HTTP error! status: ${response.status}`);
+                    }
+                    return response.json();
+                })
+                .then(data => {
+                    if (data.error) {
+                        tableBody.innerHTML = `<tr><td colspan="12">Fehler beim Laden: ${data.error}</td></tr>`;
+                        return;
+                    }
+                    
+                    // Filterung anwenden (Case-Sensitive, wie in Config definiert)
+                    const filteredData = data.filter(player => !IGNORE_PLAYERS.includes(player.name));
+
+                    // Sortieren nach Namen
+                    filteredData.sort((a, b) => a.name.localeCompare(b.name));
+
+                    if (filteredData.length === 0) {
+                        tableBody.innerHTML = `<tr><td colspan="12">Keine Statistiken gefunden.</td></tr>`;
+                        return;
+                    }
+
+                    filteredData.forEach(player => {
+                        const row = document.createElement('tr');
+                        
+                        // X01 Daten
+                        const x01 = player.x01 || {};
+                        const ppr = x01.ppr ? x01.ppr.toFixed(2) : '-';
+                        const x01Legs = x01.legs_played || 0;
+                        const x01LegsWon = x01.legs_won || 0;
+                        const x01MatchesPlayed = x01.matches_played || 0;
+                        const x01MatchesWon = x01.matches_won || 0;
+                        
+                        // Cricket Daten
+                        const cricket = player.cricket || {};
+                        const crMpr = cricket.mpr ? cricket.mpr.toFixed(2) : '-';
+                        const crLegs = cricket.legs_played || 0;
+                        const crWon = cricket.legs_won || 0;
+
+                        // Tactics Daten
+                        const tactics = player.tactics || {};
+                        const tacMpr = tactics.mpr ? tactics.mpr.toFixed(2) : '-';
+                        const tacLegs = tactics.legs_played || 0;
+                        const tacWon = tactics.legs_won || 0;
+
+                        row.innerHTML = `
+                            <td class="player-name">${player.name}</td>
+                            
+                            <td style="color: var(--primary-color); font-weight: bold;">${ppr}</td>
+                            <td>${x01Legs}</td>
+                            <td>${x01LegsWon}</td>
+                            <td>${x01MatchesPlayed}</td>
+                            <td style="color: gold; font-weight: bold;">${x01MatchesWon}</td>
+                            
+                            <td style="color: var(--green-color); font-weight: bold;">${crMpr}</td>
+                            <td>${crLegs}</td>
+                            <td>${crWon}</td>
+
+                            <td style="color: var(--info-color); font-weight: bold;">${tacMpr}</td>
+                            <td>${tacLegs}</td>
+                            <td>${tacWon}</td>
+                        `;
+                        tableBody.appendChild(row);
+                    });
+                })
+                .catch(err => {
+                    console.error("Fetch Error:", err);
+                    tableBody.innerHTML = `<tr><td colspan="12">Verbindungsfehler zur API.<br>Details in der Konsole.</td></tr>`;
+                });
+        });
+    </script>
+</body>
+</html>

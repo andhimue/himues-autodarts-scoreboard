@@ -79,26 +79,22 @@ def process_match_cricket(live_game_data):
 def update_cricket_tactics_statistic_after_leg(event_data):
     """
     Bündelt die gesamte Logik zur MPR-Verarbeitung am Ende eines Cricket/Tactics-Legs.
-    
-    BERECHNUNGS-LOGIK:
-    1.  Extrahiert Spieler, Darts und Segmente aus dem finalen Leg-Event.
-    2.  Für jeden Spieler wird die Gesamtzahl der "Marks" (Treffer) berechnet.
-        -   Single = 1 Mark, Double = 2 Marks, Triple = 3 Marks.
-        -   Bei "Cut Throat" werden Punkte, die bei Gegnern erzielt wurden,
-            ignoriert, da sie nicht zur eigenen Leistung zählen.
-        -   Eigene Punkte (nachdem ein Feld geschlossen wurde) werden in Marks umgerechnet:
-            Beispiel: 3 Treffer auf die 20 (schließt das Feld) + 2 weitere Treffer auf die T20 (60 Punkte).
-            Die 60 Punkte entsprechen 4 Marks (60 / 15), was zu 3 + 4 = 7 Marks auf der 20 führt.
-            Diese Logik ist im Server-Datensatz bereits enthalten, wir müssen nur die Marks summieren.
-    3.  Die ermittelten Werte (leg_marks, leg_darts) werden in die
-        spielmodus-spezifische `games_history_*`-Tabelle geschrieben.
-    4.  Anschließend wird der langfristige MPR des Spielers neu berechnet,
-        indem die letzten 100 Legs aus der History-Tabelle herangezogen werden.
-    5.  Der neue Gesamt-MPR wird in die `players_*`-Tabelle des Spielers geschrieben.
+    Enthält Schutz gegen doppeltes Speichern.
     """
     game_mode = event_data.get(c.KEY_SETTINGS, {}).get(c.KEY_GAME_MODE)
     if not game_mode or game_mode not in ['Cricket', 'Tactics']:
         return
+
+    # --- SCHUTZ GEGEN DOPPELTES SPEICHERN ---
+    match_id = event_data.get(c.KEY_ID)
+    current_leg = event_data.get(c.KEY_LEG)
+    leg_id = f"{match_id}-{current_leg}"
+    
+    if leg_id in g.processed_leg_ids:
+        if g.DEBUG > 0:
+            logging.info(f"Leg {leg_id} wurde bereits verarbeitet. Überspringe doppeltes Speichern.")
+        return
+    # ----------------------------------------
 
     # KORREKTUR: Variable für kleingeschriebenen Modus erstellen
     game_mode_str = game_mode.lower()
@@ -113,10 +109,12 @@ def update_cricket_tactics_statistic_after_leg(event_data):
             match_id = event_data.get(c.KEY_ID)
             current_leg = event_data.get(c.KEY_LEG)
             segments_data = event_data.get(c.KEY_STATE, {}).get('segments', {})
+            
+            # Gewinner des Legs ermitteln
+            leg_winner_index = event_data.get(c.KEY_GAME_WINNER, -1)
 
             for i, player in enumerate(event_data.get(c.KEY_PLAYERS, [])):
                 player_name = player.get(c.KEY_NAME)
-                # KORREKTUR: Variable für kleingeschriebenen Namen erstellen
                 player_name_lower = player_name.lower()
                 if not player_name or player_name_lower.startswith('test'):
                     continue
@@ -132,33 +130,35 @@ def update_cricket_tactics_statistic_after_leg(event_data):
                         total_marks += hits_list[i]
                 
                 # Hole oder erstelle den Spieler in der richtigen Tabelle
-                # KORREKTUR: 'table_prefix' zu 'game_mode' und korrekte Variable übergeben
                 player_info = get_player_data_from_db(conn, player_name, game_mode=game_mode_str)
                 if not player_info:
-                    # KORREKTUR: 'table_prefix' zu 'game_mode' und korrekte Variable übergeben
                     player_db_id = create_guest_player(conn, player_name, game_mode=game_mode_str)
                     conn.commit()
                     if player_db_id is None: continue
                     player_info = {'id': player_db_id}
 
                 player_db_id = player_info.get('id')
+                
+                # Bestimmen, ob dieser Spieler gewonnen hat
+                is_winner = (i == leg_winner_index)
 
                 # Schritt 3: Speichere Leg in der History
                 leg_stats = {'marks': total_marks, 'darts': leg_darts}
                 if leg_darts > 0:
-                    # KORREKTUR: 'table_prefix' zu 'game_mode' und korrekte Variable übergeben
-                    save_leg_to_history(conn, player_db_id, match_id, current_leg, leg_stats, game_mode=game_mode_str)
+                    save_leg_to_history(conn, player_db_id, match_id, current_leg, leg_stats, game_mode=game_mode_str, is_win=is_winner)
 
                 # Schritt 4 & 5: Berechne und speichere neuen Gesamt-MPR
-                # KORREKTUR: korrekte Variable übergeben
                 new_mpr = calculate_and_update_guest_average(conn, player_db_id, game_mode=game_mode_str)
                 
-                # NEU: Aktualisiere das korrekte Feld im Cache
+                # Aktualisiere das korrekte Feld im Cache
                 if player_name_lower in g.player_data_map:
-                    # KORREKTUR: c.KEY_OA_MPR aus constants verwenden
                     g.player_data_map[player_name_lower][c.KEY_OA_MPR] = new_mpr
 
             conn.commit()
+            
+            # Nach erfolgreichem Speichern Leg als verarbeitet markieren
+            g.processed_leg_ids.add(leg_id)
+            
         except Exception as e:
             logging.error(f"Ein schwerwiegender Fehler ist bei der MPR-Verarbeitung aufgetreten: {e}")
             conn.rollback()

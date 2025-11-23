@@ -112,10 +112,12 @@ def create_guest_player(conn, player_name, game_mode):
 #----------------------------------------------------
 
 @log_function_call
-def save_leg_to_history(conn, player_db_id, match_id, leg_number, leg_stats, game_mode):
+def save_leg_to_history(conn, player_db_id, match_id, leg_number, leg_stats, game_mode, is_win=False):
     """
     Speichert die detaillierten Statistiken eines einzelnen, beendeten Legs 
     in der spezifischen 'games_history'-Tabelle (DISPATCHER).
+    
+    NEU: Akzeptiert den Parameter 'is_win', um den Gewinner zu markieren.
 
     Args:
         conn:               Die aktive Datenbank-Verbindung.
@@ -124,13 +126,14 @@ def save_leg_to_history(conn, player_db_id, match_id, leg_number, leg_stats, gam
         leg_number (int):   Die Nummer des gespielten Legs.
         leg_stats (dict):   Ein Dictionary mit den Statistiken des Legs.
         game_mode (str):    Der Spielmodus.
+        is_win (bool):      True, wenn dieser Spieler das Leg gewonnen hat.
     """
     db_type = g.DATABASE_TYPE
     cursor = conn.cursor()
     if db_type == 'sqlite':
-        _save_leg_to_history_sqlite(cursor, player_db_id, match_id, leg_number, leg_stats, game_mode)
+        _save_leg_to_history_sqlite(cursor, player_db_id, match_id, leg_number, leg_stats, game_mode, is_win)
     else:
-        _save_leg_to_history_mariadb(cursor, player_db_id, match_id, leg_number, leg_stats, game_mode)
+        _save_leg_to_history_mariadb(cursor, player_db_id, match_id, leg_number, leg_stats, game_mode, is_win)
     conn.commit() # Commit für beide DBs
 
 #----------------------------------------------------
@@ -261,9 +264,10 @@ def _create_guest_player_mariadb(cursor, player_name, game_mode):
 
 #----------------------------------------------------
 
-def _save_leg_to_history_mariadb(cursor, player_db_id, match_id, leg_number, leg_stats, game_mode):
+def _save_leg_to_history_mariadb(cursor, player_db_id, match_id, leg_number, leg_stats, game_mode, is_win=False):
     """Speichert die detaillierten Statistiken eines einzelnen, beendeten Legs 
-        in der spezifischen 'games_history'-Tabelle."""
+        in der spezifischen 'games_history'-Tabelle.
+        NEU: Speichert auch, ob das Leg gewonnen wurde."""
     config      = SAVE_LEG_CONFIG.get(game_mode)
     stat_config = STAT_CONFIG.get(game_mode)
     if not config or not stat_config: return
@@ -271,9 +275,18 @@ def _save_leg_to_history_mariadb(cursor, player_db_id, match_id, leg_number, leg
     history_table = stat_config['history_table']
     sql = config['sql'].format(table=history_table) # Enthält %s Platzhalter
     
-    # Baut das values-Tupel dynamisch anhand der Konfiguration zusammen
-    values = tuple([player_db_id, match_id, leg_number] + [leg_stats.get(key, 0) for key in config['keys']])
+    # Boolean in DB-tauglichen Integer wandeln
+    win_val = 1 if is_win else 0
     
+    # Baut das values-Tupel dynamisch anhand der Konfiguration zusammen
+    vals = [player_db_id, match_id, leg_number]
+    for key in config['keys']:
+        vals.append(leg_stats.get(key, 0))
+    # Hänge is_win hinten an
+    vals.append(win_val)
+    
+    values = tuple(vals)
+
     cursor.execute(sql, values)
 
 #----------------------------------------------------
@@ -422,7 +435,7 @@ def _create_guest_player_sqlite(cursor, player_name, game_mode):
 
 #----------------------------------------------------
 
-def _save_leg_to_history_sqlite(cursor, player_db_id, match_id, leg_number, leg_stats, game_mode):
+def _save_leg_to_history_sqlite(cursor, player_db_id, match_id, leg_number, leg_stats, game_mode, is_win=False):
     """Speichert die detaillierten Statistiken eines einzelnen, beendeten Legs 
         in der spezifischen 'games_history'-Tabelle."""
     config      = SAVE_LEG_CONFIG.get(game_mode)
@@ -432,7 +445,15 @@ def _save_leg_to_history_sqlite(cursor, player_db_id, match_id, leg_number, leg_
     history_table = stat_config['history_table']
     # WICHTIG: Ersetze MariaDB Platzhalter (%s) durch SQLite Platzhalter (?)
     sql = config['sql'].format(table=history_table).replace('%s', '?')
-    values = tuple([player_db_id, match_id, leg_number] + [leg_stats.get(key, 0) for key in config['keys']])
+    
+    win_int = 1 if is_win else 0
+    
+    vals = [player_db_id, match_id, leg_number]
+    for key in config['keys']:
+        vals.append(leg_stats.get(key, 0))
+    vals.append(win_int)
+    
+    values = tuple(vals)
     
     cursor.execute(sql, values)
 
@@ -640,31 +661,195 @@ CALCULATION_HANDLERS = {
     'segment_training': _calculate_hit_rate_logic # Nutzt dieselbe Logik wie ATC
 }
 
+
+#----------------------------------------------------
+# === STATISTIK-API FUNKTIONEN ===
+def get_all_player_statistics():
+    """
+    Sammelt umfassende Statistiken für alle Spieler.
+    Erweitert für X01: Berechnet zusätzlich gewonnene Matches.
+    """
+    if not g.USE_DATABASE:
+        return []
+
+    stats = {} # Key: Player Name, Value: Dict mit Stats
+
+    with get_db_connection() as conn:
+        if not conn:
+            return []
+        
+        cursor = conn.cursor()
+        
+        # --- 1. X01 Statistiken ---
+        try:
+            # A) Hole Grunddaten aller Spieler
+            cursor.execute("SELECT id, name, average FROM players_x01")
+            players = cursor.fetchall()
+            
+            # B) Bereite das Stats-Objekt vor
+            player_map = {} # ID -> Name Mapping für spätere Zuordnung
+            for p in players:
+                # Wenn Tuple-Cursor (Standard)
+                p_id = p[0]
+                name = p[1]
+                avg = p[2]
+                player_map[p_id] = name
+                
+                if name not in stats:
+                    stats[name] = {'name': name, 'x01': {}, 'cricket': {}, 'tactics': {}}
+                
+                stats[name]['x01']['ppr'] = float(avg) if avg else 0.0
+                stats[name]['x01']['legs_played'] = 0
+                stats[name]['x01']['legs_won'] = 0
+                stats[name]['x01']['matches_played'] = 0 # NEU
+                stats[name]['x01']['matches_won'] = 0 
+
+            # C) Hole ALLE Leg-Siege für die Match-Auswertung
+            # Wir brauchen: match_id, player_id, und ob gewonnen wurde
+            if g.DATABASE_TYPE == 'mariadb':
+                cursor.execute("SELECT match_id, player_id, is_win FROM games_history_x01")
+            else:
+                cursor.execute("SELECT match_id, player_id, is_win FROM games_history_x01")
+            
+            all_legs = cursor.fetchall()
+
+            # D) Daten aggregieren
+            # Struktur: matches[match_id][player_id] = anzahl_gewonnene_legs
+            matches_analysis = {}
+
+            for row in all_legs:
+                m_id = row[0]
+                p_id = row[1]
+                is_win = row[2] # 1 oder 0
+
+                # Sicherheitscheck, falls ID nicht mehr existiert
+                if p_id not in player_map: continue
+                name = player_map[p_id]
+
+                # Grundlegende Leg-Statistik zählen
+                stats[name]['x01']['legs_played'] += 1
+                if is_win:
+                    stats[name]['x01']['legs_won'] += 1
+                
+                # Match-Analyse vorbereiten
+                if m_id not in matches_analysis: matches_analysis[m_id] = {}
+                if p_id not in matches_analysis[m_id]: matches_analysis[m_id][p_id] = 0
+                
+                if is_win:
+                    matches_analysis[m_id][p_id] += 1
+
+            # E) Match-Gewinner und Match-Anzahl ermitteln
+            for m_id, players_scores in matches_analysis.items():
+                if not players_scores: continue
+                
+                # 1. Zähle "Match gespielt" für JEDEN Spieler in diesem Match
+                for p_id in players_scores:
+                    if p_id in player_map:
+                        w_name = player_map[p_id]
+                        stats[w_name]['x01']['matches_played'] += 1
+
+                # 2. Ermittle den Gewinner des Matches
+                # Finde den Spieler mit den meisten gewonnenen Legs in diesem Match
+                winner_id = max(players_scores, key=players_scores.get)
+                max_wins = players_scores[winner_id]
+                
+                # Prüfen auf Eindeutigkeit (kein Unentschieden beim Leg-Count)
+                winners = [pid for pid, wins in players_scores.items() if wins == max_wins]
+                
+                if len(winners) == 1 and max_wins > 0:
+                    # Eindeutiger Sieger
+                    w_name = player_map[winners[0]]
+                    stats[w_name]['x01']['matches_won'] += 1
+
+        except Exception as e:
+            logging.error(f"Fehler beim Abrufen der X01-Stats: {e}")
+
+
+        # --- 2. Cricket Statistiken ---
+        try:
+            cursor.execute("SELECT id, name, mpr FROM players_cricket")
+            players = cursor.fetchall()
+            for p in players:
+                p_id = p[0]
+                name = p[1]
+                mpr = p[2]
+                
+                if name not in stats:
+                    stats[name] = {'name': name, 'x01': {}, 'cricket': {}, 'tactics': {}}
+                
+                stats[name]['cricket']['mpr'] = float(mpr) if mpr else 0.0
+                
+                # History für Cricket (Anzahl Legs & Wins)
+                if g.DATABASE_TYPE == 'mariadb':
+                    sql_counts = "SELECT COUNT(*), SUM(is_win) FROM games_history_cricket WHERE player_id = %s"
+                    cursor.execute(sql_counts, (p_id,))
+                else:
+                    sql_counts = "SELECT COUNT(*), SUM(is_win) FROM games_history_cricket WHERE player_id = ?"
+                    cursor.execute(sql_counts, (p_id,))
+                
+                counts = cursor.fetchone()
+                stats[name]['cricket']['legs_played'] = counts[0] if counts else 0
+                stats[name]['cricket']['legs_won'] = int(counts[1]) if counts and counts[1] else 0
+
+        except Exception as e:
+            logging.error(f"Fehler beim Abrufen der Cricket-Stats: {e}")
+
+        # --- 3. Tactics Statistiken ---
+        try:
+            cursor.execute("SELECT id, name, mpr FROM players_tactics")
+            players = cursor.fetchall()
+            for p in players:
+                p_id = p[0]
+                name = p[1]
+                mpr = p[2]
+                
+                if name not in stats:
+                    stats[name] = {'name': name, 'x01': {}, 'cricket': {}, 'tactics': {}}
+                
+                stats[name]['tactics']['mpr'] = float(mpr) if mpr else 0.0
+                
+                if g.DATABASE_TYPE == 'mariadb':
+                    sql_counts = "SELECT COUNT(*), SUM(is_win) FROM games_history_tactics WHERE player_id = %s"
+                    cursor.execute(sql_counts, (p_id,))
+                else:
+                    sql_counts = "SELECT COUNT(*), SUM(is_win) FROM games_history_tactics WHERE player_id = ?"
+                    cursor.execute(sql_counts, (p_id,))
+                
+                counts = cursor.fetchone()
+                stats[name]['tactics']['legs_played'] = counts[0] if counts else 0
+                stats[name]['tactics']['legs_won'] = int(counts[1]) if counts and counts[1] else 0
+
+        except Exception as e:
+            logging.error(f"Fehler beim Abrufen der Tactics-Stats: {e}")
+
+    return list(stats.values())
 #----------------------------------------------------
 # --- Konfigurations-Dictionary für save_leg_to_history ---
+# NEU: Alle Insert-Statements um 'is_win' erweitert.
+# Platzhalter: %s (wird für SQLite automatisch zu ?)
 SAVE_LEG_CONFIG = {
     'x01': {
-        'sql':  "INSERT INTO {table} (player_id, match_id, leg_number, leg_average, leg_points, leg_darts) VALUES (%s, %s, %s, %s, %s, %s)",
+        'sql':  "INSERT INTO {table} (player_id, match_id, leg_number, leg_average, leg_points, leg_darts, is_win) VALUES (%s, %s, %s, %s, %s, %s, %s)",
         'keys': ['average', 'score', 'dartsThrown']
     },
     'cricket': {
-        'sql':  "INSERT INTO {table} (player_id, match_id, leg_number, leg_marks, leg_darts) VALUES (%s, %s, %s, %s, %s)",
+        'sql':  "INSERT INTO {table} (player_id, match_id, leg_number, leg_marks, leg_darts, is_win) VALUES (%s, %s, %s, %s, %s, %s)",
         'keys': ['marks', 'darts']
     },
     'tactics': {
-        'sql':  "INSERT INTO {table} (player_id, match_id, leg_number, leg_marks, leg_darts) VALUES (%s, %s, %s, %s, %s)",
+        'sql':  "INSERT INTO {table} (player_id, match_id, leg_number, leg_marks, leg_darts, is_win) VALUES (%s, %s, %s, %s, %s, %s)",
         'keys': ['marks', 'darts']
     },
     'atc': {
-        'sql':  "INSERT INTO {table} (player_id, match_id, leg_number, leg_hit_rate, leg_darts) VALUES (%s, %s, %s, %s, %s)",
+        'sql':  "INSERT INTO {table} (player_id, match_id, leg_number, leg_hit_rate, leg_darts, is_win) VALUES (%s, %s, %s, %s, %s, %s)",
         'keys': ['hit_rate', 'darts']
     },
     'countup': {
-        'sql': "INSERT INTO {table} (player_id, match_id, leg_number, leg_points, leg_darts) VALUES (%s, %s, %s, %s, %s)",
+        'sql': "INSERT INTO {table} (player_id, match_id, leg_number, leg_points, leg_darts, is_win) VALUES (%s, %s, %s, %s, %s, %s)",
         'keys': ['score', 'dartsThrown']
     },
     'segment_training': {
-        'sql':  "INSERT INTO {table} (player_id, match_id, leg_number, leg_hit_rate, leg_darts) VALUES (%s, %s, %s, %s, %s)",
+        'sql':  "INSERT INTO {table} (player_id, match_id, leg_number, leg_hit_rate, leg_darts, is_win) VALUES (%s, %s, %s, %s, %s, %s)",
         'keys': ['hit_rate', 'darts']
     }
 }

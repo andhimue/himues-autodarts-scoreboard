@@ -29,9 +29,9 @@ BACKEND_PORT = 6001
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s', force=True)
 
 # Steuert die Anzeige der Spieldauer
-SHOW_MATCH_DURATION = True        # Steuert ob die Spieldauer überhaupt angezeigt wird
+SHOW_MATCH_DURATION = True # Steuert ob die Spieldauer überhaupt angezeigt wird
 SHOW_DURATION_IN_GAMERULES = True # True= Anzeige als Teil der Spielregeln, False = Anzeige oben rechts
-MATCH_DURATION_INTERVAL = 5       # Intervall für die Aktualisierung der Spieldaueranzeige in Sekunden (z.B. 5, 10, 15)
+MATCH_DURATION_INTERVAL = 5 # Intervall für die Aktualisierung der Spieldaueranzeige in Sekunden (z.B. 5, 10, 15)
 
 # Pfade für SSL-Zertifikate
 CERT_FILE = "crt/dummy.crt"
@@ -54,3 +54,6 @@ FORCE_STABLE_SORTING = True # True: Stabile Sortierung, False: Rotiertende Serve
 # Mit True werden die Spieler in X01 und Gotcha als Karte angezeigt.
 # Mit False als Tabelle
 SHOW_PLAYER_CARD = False
+
+# Liste von Spielernamen, die in der Statistik ausgeblendet werden sollen
+STATS_IGNORE_PLAYERS = ["einer", "noch einer", "Bot Level 1", "Bot Level 2"]

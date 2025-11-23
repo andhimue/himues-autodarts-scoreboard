@@ -16,8 +16,8 @@ CREATE TABLE IF NOT EXISTS games_history_x01 (
   leg_average REAL NOT NULL,
   leg_points INTEGER NOT NULL,
   leg_darts INTEGER NOT NULL,
+  is_win INTEGER NOT NULL DEFAULT 0, -- NEU
   finished_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
-  -- Foreign Key Definition (Constraint muss in einer separaten Zeile stehen, um das Parsen zu vereinfachen)
   FOREIGN KEY (player_id) REFERENCES players_x01 (id) ON DELETE CASCADE
 );
 
@@ -38,6 +38,7 @@ CREATE TABLE IF NOT EXISTS games_history_cricket (
   leg_number INTEGER NOT NULL,
   leg_marks INTEGER NOT NULL,
   leg_darts INTEGER NOT NULL,
+  is_win INTEGER NOT NULL DEFAULT 0, -- NEU
   finished_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
   FOREIGN KEY (player_id) REFERENCES players_cricket (id) ON DELETE CASCADE
 );
@@ -59,6 +60,7 @@ CREATE TABLE IF NOT EXISTS games_history_tactics (
   leg_number INTEGER NOT NULL,
   leg_marks INTEGER NOT NULL,
   leg_darts INTEGER NOT NULL,
+  is_win INTEGER NOT NULL DEFAULT 0, -- NEU
   finished_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
   FOREIGN KEY (player_id) REFERENCES players_tactics (id) ON DELETE CASCADE
 );
@@ -68,7 +70,7 @@ CREATE TABLE IF NOT EXISTS players_atc (
   id INTEGER PRIMARY KEY AUTOINCREMENT,
   name TEXT NOT NULL UNIQUE,
   is_registered INTEGER NOT NULL DEFAULT 0,
-  hit_rate REAL DEFAULT NULL, -- z.B. 0.7780 für 77.8%
+  hit_rate REAL DEFAULT NULL,
   created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
   updated_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP
 );
@@ -80,6 +82,7 @@ CREATE TABLE IF NOT EXISTS games_history_atc (
   leg_number INTEGER NOT NULL,
   leg_hit_rate REAL NOT NULL,
   leg_darts INTEGER NOT NULL,
+  is_win INTEGER NOT NULL DEFAULT 0, -- NEU
   finished_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
   FOREIGN KEY (player_id) REFERENCES players_atc (id) ON DELETE CASCADE
 );
@@ -89,7 +92,7 @@ CREATE TABLE IF NOT EXISTS players_countup (
   id INTEGER PRIMARY KEY AUTOINCREMENT,
   name TEXT NOT NULL UNIQUE,
   is_registered INTEGER NOT NULL DEFAULT 0,
-  ppr REAL DEFAULT NULL, -- Points Per Round
+  ppr REAL DEFAULT NULL,
   created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
   updated_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP
 );
@@ -101,6 +104,7 @@ CREATE TABLE IF NOT EXISTS games_history_countup (
   leg_number INTEGER NOT NULL,
   leg_points INTEGER NOT NULL,
   leg_darts INTEGER NOT NULL,
+  is_win INTEGER NOT NULL DEFAULT 0, -- NEU
   finished_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
   FOREIGN KEY (player_id) REFERENCES players_countup (id) ON DELETE CASCADE
 );
@@ -122,6 +126,7 @@ CREATE TABLE IF NOT EXISTS games_history_segment_training (
   leg_number INTEGER NOT NULL,
   leg_hit_rate REAL NOT NULL,
   leg_darts INTEGER NOT NULL,
+  is_win INTEGER NOT NULL DEFAULT 0, -- NEU
   finished_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
   FOREIGN KEY (player_id) REFERENCES players_segment_training (id) ON DELETE CASCADE
 );

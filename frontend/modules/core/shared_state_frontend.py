@@ -33,6 +33,8 @@ FORCE_STABLE_SORTING = True
 # Anzeige der Spieler als Karte oder Tabelle
 SHOW_PLAYER_CARD = False
 
+# Liste der zu ignorierenden Spieler in der Statistik
+STATS_IGNORE_PLAYERS = []
 
 # --- Geteilte Applikations-Objekte (Platzhalter) ---
 # Werden von app.py beim Start befüllt.

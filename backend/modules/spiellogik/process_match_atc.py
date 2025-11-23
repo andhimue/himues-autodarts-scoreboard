@@ -80,10 +80,21 @@ def process_match_atc(live_game_data):
 def update_atc_statistic_after_leg(event_data):
     """
     Bündelt die Logik zur Hit-Rate-Verarbeitung am Ende eines ATC-Legs.
-    Extrahiert die Leg-Statistiken, speichert sie in der Datenbank und 
-    berechnet die neue langfristige Hit-Rate für jeden Spieler.
+    Enthält Schutz gegen doppeltes Speichern.
     """
     game_mode = 'atc'
+    
+    # --- SCHUTZ GEGEN DOPPELTES SPEICHERN ---
+    match_id = event_data.get(c.KEY_ID)
+    current_leg = event_data.get(c.KEY_LEG)
+    leg_id = f"{match_id}-{current_leg}"
+    
+    if leg_id in g.processed_leg_ids:
+        if g.DEBUG > 0:
+            logging.info(f"Leg {leg_id} wurde bereits verarbeitet. Überspringe doppeltes Speichern.")
+        return
+    # ----------------------------------------
+
     if g.DEBUG > 0:
         logging.info(f"HIT-RATE-VERARBEITUNG FÜR {game_mode.upper()} LEG {event_data.get(c.KEY_LEG)} GESTARTET")
 
@@ -92,8 +103,8 @@ def update_atc_statistic_after_leg(event_data):
             return
             
         try:
-            match_id = event_data.get(c.KEY_ID)
-            current_leg = event_data.get(c.KEY_LEG)
+            # Gewinner des Legs ermitteln
+            leg_winner_index = event_data.get(c.KEY_GAME_WINNER, -1)
 
             for i, player in enumerate(event_data.get(c.KEY_PLAYERS, [])):
                 player_name = player.get(c.KEY_NAME)
@@ -118,11 +129,14 @@ def update_atc_statistic_after_leg(event_data):
                     player_info = {'id': player_db_id}
 
                 player_db_id = player_info.get('id')
+                
+                # Bestimmen, ob dieser Spieler gewonnen hat
+                is_winner = (i == leg_winner_index)
 
                 # Speichere die Leg-Daten in der 'games_history_atc' Tabelle
                 db_leg_stats = {'hit_rate': leg_hit_rate, 'darts': leg_darts}
                 if leg_darts > 0:
-                    save_leg_to_history(conn, player_db_id, match_id, current_leg, db_leg_stats, game_mode=game_mode)
+                    save_leg_to_history(conn, player_db_id, match_id, current_leg, db_leg_stats, game_mode=game_mode, is_win=is_winner)
 
                 # Berechne die neue langfristige Hit-Rate und aktualisiere die 'players_atc' Tabelle
                 new_overall_hit_rate = calculate_and_update_guest_average(conn, player_db_id, game_mode=game_mode)
@@ -132,6 +146,9 @@ def update_atc_statistic_after_leg(event_data):
                     g.player_data_map[player_name_lower][c.KEY_OA_HIT_RATE] = new_overall_hit_rate
             
             conn.commit()
+            
+            # Nach erfolgreichem Speichern Leg als verarbeitet markieren
+            g.processed_leg_ids.add(leg_id)
 
         except Exception as e:
             logging.error(f"Ein schwerwiegender Fehler ist bei der Hit-Rate-Verarbeitung aufgetreten: {e}")

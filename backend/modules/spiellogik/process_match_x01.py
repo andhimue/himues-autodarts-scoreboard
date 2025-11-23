@@ -55,10 +55,6 @@ def update_x01_statistic_after_leg(event_data):
     current_leg = event_data.get(c.KEY_LEG)
 
     # --- Mechanismus zur Verhinderung doppelter Speicherung ---
-    # Der Autodasrts_Server sendet Beim Matchende sofort nach dem Gewinn des Finalen Legs ein Event, das alle Daten (inkl. des Matchgewinners) enthält.
-    # Nach dem Klick auf den Finish-Button sendet er ein - bis auf den Zeitstempel - absolut identisches Event.
-    # Ohne sich (in g.processed_leg_ids) zu merkjen, für welches Leg dieses Matches bereits Daten in die Datenbank geschrieben wurden, würden
-    # die Daten des letzten Legs 2maö egspeichert. Einmalö zum Leg-Ende und einmal nach dem Klick auf Finish.
     leg_id = f"{match_id}-{current_leg}"
     if leg_id in g.processed_leg_ids:
         if g.DEBUG > 0:
@@ -77,6 +73,10 @@ def update_x01_statistic_after_leg(event_data):
             match_id = event_data.get(c.KEY_ID)
             current_leg = event_data.get(c.KEY_LEG)
             board_owner_name = event_data.get('host', {}).get(c.KEY_NAME)
+            
+            # NEU: Gewinner des Legs ermitteln
+            # gameWinner ist der Index in der aktuellen (rotierten) Spielerliste
+            leg_winner_index = event_data.get(c.KEY_GAME_WINNER, -1)
 
             if not all([match_id, current_leg, board_owner_name]):
                 logging.info("FEHLER: Notwendige Daten (match_id, leg, host) im Event nicht gefunden.")
@@ -105,9 +105,14 @@ def update_x01_statistic_after_leg(event_data):
                 is_registered_user = player.get(c.KEY_USER) is not None
 
                 leg_stats = stats_block.get(c.KEY_LEG_STATS, {})
+                
+                # NEU: Bestimmen, ob dieser Spieler gewonnen hat
+                # i ist der Index in der aktuellen Spielerliste, gameWinner referenziert diesen Index
+                is_winner = (i == leg_winner_index)
                 # Stelle sicher, dass das Leg Statistiken hat, bevor du speicherst
                 if leg_stats and leg_stats.get('dartsThrown', 0) > 0:
-                    save_leg_to_history(conn, player_db_id, match_id, current_leg, leg_stats, game_mode='x01')
+                    # NEU: Übergabe von is_win=is_winner
+                    save_leg_to_history(conn, player_db_id, match_id, current_leg, leg_stats, game_mode='x01', is_win=is_winner)
 
                 if is_registered_user:
                     # Der Spieler ist registriert oder der Board-Owner

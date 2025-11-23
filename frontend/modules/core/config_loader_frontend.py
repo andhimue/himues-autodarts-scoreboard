@@ -63,3 +63,6 @@ def load_and_parse_config_frontend():
 
     # Für Listen ist getattr die beste Methode, da sie nicht einfach aus .env geladen werden können
     g.BROWSER_NAMES_TO_SHOW_ONLY_VIDEO =                                                 getattr(config, 'BROWSER_NAMES_TO_SHOW_ONLY_VIDEO', ["Tizen 5.0"])
+
+    # Lade die Ignore-Liste für die Satisic-Anzeige
+    g.STATS_IGNORE_PLAYERS             = getattr(config, 'STATS_IGNORE_PLAYERS', [])

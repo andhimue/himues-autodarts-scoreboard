@@ -18,11 +18,13 @@ CREATE TABLE IF NOT EXISTS `games_history_x01` (
   `leg_average` decimal(5,2) NOT NULL,
   `leg_points` int(11) NOT NULL,
   `leg_darts` int(11) NOT NULL,
+  `` tinyint(1) NOT NULL DEFAULT 0, -- NEU: Speichert, ob das Leg gewonnen wurde
   `finished_at` timestamp NOT NULL DEFAULT current_timestamp(),
   PRIMARY KEY (`id`),
   KEY `player_id` (`player_id`),
   CONSTRAINT `games_history_x01_ibfk_1` FOREIGN KEY (`player_id`) REFERENCES `players_x01` (`id`) ON DELETE CASCADE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+
 
 -- Tabellen für Cricket
 CREATE TABLE IF NOT EXISTS `players_cricket` (
@@ -43,11 +45,13 @@ CREATE TABLE IF NOT EXISTS `games_history_cricket` (
   `leg_number` int(11) NOT NULL,
   `leg_marks` int(11) NOT NULL,
   `leg_darts` int(11) NOT NULL,
+  `is_win` tinyint(1) NOT NULL DEFAULT 0, -- NEU
   `finished_at` timestamp NOT NULL DEFAULT current_timestamp(),
   PRIMARY KEY (`id`),
   KEY `player_id` (`player_id`),
   CONSTRAINT `games_history_cricket_ibfk_1` FOREIGN KEY (`player_id`) REFERENCES `players_cricket` (`id`) ON DELETE CASCADE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+
 
 -- Tabellen für Tactics
 CREATE TABLE IF NOT EXISTS `players_tactics` (
@@ -68,18 +72,20 @@ CREATE TABLE IF NOT EXISTS `games_history_tactics` (
   `leg_number` int(11) NOT NULL,
   `leg_marks` int(11) NOT NULL,
   `leg_darts` int(11) NOT NULL,
+  `is_win` tinyint(1) NOT NULL DEFAULT 0, -- NEU
   `finished_at` timestamp NOT NULL DEFAULT current_timestamp(),
   PRIMARY KEY (`id`),
   KEY `player_id` (`player_id`),
   CONSTRAINT `games_history_tactics_ibfk_1` FOREIGN KEY (`player_id`) REFERENCES `players_tactics` (`id`) ON DELETE CASCADE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
+
 -- Tabellen für ATC
 CREATE TABLE IF NOT EXISTS `players_atc` (
   `id` int(11) NOT NULL AUTO_INCREMENT,
   `name` varchar(255) NOT NULL,
   `is_registered` tinyint(1) NOT NULL DEFAULT 0,
-  `hit_rate` decimal(5,4) DEFAULT NULL, -- z.B. 0.7780 für 77.8%
+  `hit_rate` decimal(5,4) DEFAULT NULL,
   `created_at` timestamp NOT NULL DEFAULT current_timestamp(),
   `updated_at` timestamp NOT NULL DEFAULT current_timestamp() ON UPDATE current_timestamp(),
   PRIMARY KEY (`id`),
@@ -93,18 +99,20 @@ CREATE TABLE IF NOT EXISTS `games_history_atc` (
   `leg_number` int(11) NOT NULL,
   `leg_hit_rate` decimal(5,4) NOT NULL,
   `leg_darts` int(11) NOT NULL,
+  `is_win` tinyint(1) NOT NULL DEFAULT 0, -- NEU
   `finished_at` timestamp NOT NULL DEFAULT current_timestamp(),
   PRIMARY KEY (`id`),
   KEY `player_id` (`player_id`),
   CONSTRAINT `games_history_atc_ibfk_1` FOREIGN KEY (`player_id`) REFERENCES `players_atc` (`id`) ON DELETE CASCADE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
+
 -- Tabellen für Count Up
 CREATE TABLE IF NOT EXISTS `players_countup` (
   `id` int(11) NOT NULL AUTO_INCREMENT,
   `name` varchar(255) NOT NULL,
   `is_registered` tinyint(1) NOT NULL DEFAULT 0,
-  `ppr` decimal(5,2) DEFAULT NULL, -- Points Per Round
+  `ppr` decimal(5,2) DEFAULT NULL, 
   `created_at` timestamp NOT NULL DEFAULT current_timestamp(),
   `updated_at` timestamp NOT NULL DEFAULT current_timestamp() ON UPDATE current_timestamp(),
   PRIMARY KEY (`id`),
@@ -118,11 +126,13 @@ CREATE TABLE IF NOT EXISTS `games_history_countup` (
   `leg_number` int(11) NOT NULL,
   `leg_points` int(11) NOT NULL,
   `leg_darts` int(11) NOT NULL,
+  `is_win` tinyint(1) NOT NULL DEFAULT 0, -- NEU
   `finished_at` timestamp NOT NULL DEFAULT current_timestamp(),
   PRIMARY KEY (`id`),
   KEY `player_id` (`player_id`),
   CONSTRAINT `games_history_countup_ibfk_1` FOREIGN KEY (`player_id`) REFERENCES `players_countup` (`id`) ON DELETE CASCADE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+
 
 -- Tabellen für Segment Training
 CREATE TABLE IF NOT EXISTS `players_segment_training` (
@@ -143,6 +153,7 @@ CREATE TABLE IF NOT EXISTS `games_history_segment_training` (
   `leg_number` int(11) NOT NULL,
   `leg_hit_rate` decimal(5,4) NOT NULL,
   `leg_darts` int(11) NOT NULL,
+  `is_win` tinyint(1) NOT NULL DEFAULT 0, -- NEU
   `finished_at` timestamp NOT NULL DEFAULT current_timestamp(),
   PRIMARY KEY (`id`),
   KEY `player_id` (`player_id`),
