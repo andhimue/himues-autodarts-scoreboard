@@ -64,9 +64,11 @@ def orchestrate_match_start_and_finish(match_event_data, websocket_connection):
         websocket_connection: Die aktive WebSocket-Verbindung.
     """
     with g.game_data_lock:
-        if match_event_data.get(c.KEY_EVENT) == 'start':
+        event_type = match_event_data.get(c.KEY_EVENT)
+        match_id = match_event_data.get(c.KEY_ID)
+        if event_type == 'start':
             try:
-                g.active_match_id = match_event_data.get(c.KEY_ID)
+                g.active_match_id = match_id
 
                 if g.DEBUG:
                     logging.info('Listen to match: %s', g.active_match_id)
@@ -98,7 +100,7 @@ def orchestrate_match_start_and_finish(match_event_data, websocket_connection):
             except Exception as e:
                 logging.error('Fetching initial match-data failed: %s', e)
 
-        elif match_event_data.get(c.KEY_EVENT) in ['finish', 'delete']:
+        elif event_type in ['finish', 'delete']:
             # Prüfen, ob das beendete Match auch das aktive ist!
             # Wenn ein altes "Geister-Match" beendet wird, darf das laufende Spiel nicht gestört werden.
             if g.active_match_id and match_id == g.active_match_id:
