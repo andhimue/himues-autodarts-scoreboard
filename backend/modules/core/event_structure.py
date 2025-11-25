@@ -73,6 +73,10 @@ class PlayerInfo:
     leg_hit_rate:     float = 0.0   # Die Trefferquote des Spielers im aktuellen Leg.
     darts_thrown_leg: int = 0       # Die Anzahl der vom Spieler im aktuellen Leg geworfenen Darts.
 
+    # Infos zur letzten Aufnahme
+    last_turn_score:  int = None    # Die Gesamtpunktzahl der letzten Aufnahme
+    last_turn_darts:  str = None    # Die einzelnen Darts als String (z.B. "T20, 5, 1")
+
     # CountUp-spezifische Statistiken
     overall_ppr:      float = 0.0   # NEU: Der historische Gesamt-PPR.
 

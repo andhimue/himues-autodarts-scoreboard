@@ -34,14 +34,14 @@ def process_match_x01(live_game_data):
     # X01-Sonderlogik: Bei "First to 1 Leg" ist ein Leg-Sieg auch ein Match-Sieg.
     is_first_to_one_leg = not event.match.legs_to_win or event.match.legs_to_win == 1
 
+
     if event.game_state == c.STATE_LEG_WON and is_first_to_one_leg and not event.match.sets_to_win:
         event.game_state = c.STATE_MATCH_WON
 
         if event.winner_info: # Sicherstellen, dass winner_info existiert
             event.winner_info["type"] = "Match"
 
-    return event.to_dict()
-    
+    return event.to_dict()    
 #-----------------------------------------------------------------------------
 
 @log_function_call

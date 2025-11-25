@@ -78,7 +78,8 @@ def index():
         debug=g.DEBUG,
         show_match_duration=g.SHOW_MATCH_DURATION,
         show_duration_in_gamerules=g.SHOW_DURATION_IN_GAMERULES,
-        match_duration_interval=g.MATCH_DURATION_INTERVAL
+        match_duration_interval=g.MATCH_DURATION_INTERVAL,
+        player_replacements=g.PLAYER_NAME_REPLACEMENTS
     )
 
 #------------------------------------------
@@ -161,7 +162,7 @@ def static_files(filename):
 @app.route('/statistics/')
 def statistics():
     """Zeigt die Statistik-Seite an (HTML)."""
-    return render_template('statistics.html', ignore_players=g.STATS_IGNORE_PLAYERS)
+    return render_template('statistics.html', ignore_players=g.STATS_IGNORE_PLAYERS, player_replacements=g.PLAYER_NAME_REPLACEMENTS)
 
 @app.route('/frontend-api/statistics')
 @app.route('/frontend-api/statistics/')

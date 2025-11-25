@@ -36,6 +36,9 @@ SHOW_PLAYER_CARD = False
 # Liste der zu ignorierenden Spieler in der Statistik
 STATS_IGNORE_PLAYERS = []
 
+# Mapping für Namensersetzungen
+PLAYER_NAME_REPLACEMENTS = {}
+
 # --- Geteilte Applikations-Objekte (Platzhalter) ---
 # Werden von app.py beim Start befüllt.
 socketio_server         = None

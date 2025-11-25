@@ -57,3 +57,11 @@ SHOW_PLAYER_CARD = False
 
 # Liste von Spielernamen, die in der Statistik ausgeblendet werden sollen
 STATS_IGNORE_PLAYERS = ["einer", "noch einer", "Bot Level 1", "Bot Level 2"]
+
+# Mapping für Spielernamen-Ersetzung im Frontend
+# Format: "OriginalName": "AnzeigeName"
+# Groß-/Kleinschreibung des Originalnamens ist wichtig!
+PLAYER_NAME_REPLACEMENTS = {
+    "biene14": "Corinna",
+    "himue": "andreas"
+}

@@ -16,7 +16,7 @@
  */
  
  const DEFAULT_TABLE_CONFIG = [
-    { selector: '.game-table__cell--player-name', source: player => player.name },
+    { selector: '.game-table__cell--player-name', source: player => resolvePlayerName(player.name) },
     { selector: '.game-table__cell--score',       source: player => player.score },
     { 
         selector: '.game-table__cell--legs-sets', 
@@ -31,7 +31,7 @@
  */
  
  const DEFAULT_CARD_CONFIG = [
-    { selector: '.player-card__name',   source: player => player.name },
+    { selector: '.player-card__name',   source: player => player => resolvePlayerName(player.name) },
     { selector: '.player-card__score',  source: player => player.score },
     { 
         selector: '.player-card__legs-sets', 
@@ -182,6 +182,10 @@ function createBaseViewModel() {
 
     if (currentPlayer) {
         viewModel.focus.score.text = currentPlayer.score;
+
+        // NEU: Name auflösen
+        viewModel.focus.player_name.text = resolvePlayerName(currentPlayer.name);
+        viewModel.focus.player_name.visible = true; // Name immer anzeigen wenn Spieler da ist
     }
         
     // Darts befüllen
@@ -295,6 +299,9 @@ function updateSharedFocusArea(viewModel) {
     const shouldBeVisible = viewModel.focus.player_name.visible || 
                             viewModel.focus.score.visible;
     UI.infoArea.toggle(shouldBeVisible);
+
+    // NEU: Name setzen
+    UI.focusPlayerName.text(viewModel.focus.player_name.text).toggle(viewModel.focus.player_name.visible);
     UI.gameModeDisplay.text(viewModel.details.gamemode.text).toggle(viewModel.details.gamemode.visible);
     
     // Regel-Container leeren und mit dem neuen, zusammengesetzten HTML füllen
@@ -442,6 +449,7 @@ function renderGameTable(tableOrSelector, templateSelector, players, currentPlay
         });
 
         // Die Logik für die aktive Spielerzeile bleibt separat
+        // WICHTIG: Hier vergleichen wir weiterhin die ORIGINAL-Namen aus dem Datenobjekt
         if (player.name === activePlayerName) {
             newRow.find('tr').addClass('active-player-row');
         }
@@ -579,7 +587,7 @@ function formatAverage(avg) {
 
 //------------------------------------------------------------------
 
-// NEU: Diese Funktion formatiert den Average UND fügt das Icon hinzu.
+// Diese Funktion formatiert den Average UND fügt das Icon hinzu.
 function createOverallAverageHtml(player, key = 'overall_average', showIcons = false) {
     const averageText = formatAverage(player[key]);
     let iconHtml = '';
@@ -598,6 +606,8 @@ function createOverallAverageHtml(player, key = 'overall_average', showIcons = f
             </div>`;
 }
 
+//------------------------------------------------------------------
+
 /**
  * @summary Blendet eine komplette Tabellenspalte (Header und Zellen) ein oder aus.
  * @param {string} tableSelector Der CSS-Selector für die Tabelle (z.B. '#x01-table').
@@ -610,4 +620,20 @@ function toggleTableColumn(tableSelector, columnIdentifier, shouldShow) {
     
     // Wähle sowohl Header als auch Zellen innerhalb der spezifischen Tabelle aus
     $(tableSelector).find(headerSelector + ', ' + cellSelector).toggle(shouldShow);
+}
+
+//------------------------------------------------------------------
+
+/**
+ * @summary Ersetzt einen Spielernamen, falls ein Alias in der Konfiguration definiert ist.
+ * @param {string} originalName Der Name vom Server.
+ * @returns {string} Der anzuzeigende Name.
+ */
+function resolvePlayerName(originalName) {
+    if (!originalName) return "";
+    // Prüfen, ob ein Ersatzname definiert ist (Case-Sensitive Prüfung auf den Key)
+    if (typeof PLAYER_NAME_REPLACEMENTS !== 'undefined' && PLAYER_NAME_REPLACEMENTS.hasOwnProperty(originalName)) {
+        return PLAYER_NAME_REPLACEMENTS[originalName];
+    }
+    return originalName;
 }

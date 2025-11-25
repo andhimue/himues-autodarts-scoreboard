@@ -66,3 +66,6 @@ def load_and_parse_config_frontend():
 
     # Lade die Ignore-Liste für die Satisic-Anzeige
     g.STATS_IGNORE_PLAYERS             = getattr(config, 'STATS_IGNORE_PLAYERS', [])
+
+    # Lade das Namens-Mapping
+    g.PLAYER_NAME_REPLACEMENTS         = getattr(config, 'PLAYER_NAME_REPLACEMENTS', {})

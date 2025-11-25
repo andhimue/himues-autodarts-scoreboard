@@ -1,12 +1,19 @@
 // Frontend/static/js/spielmodi/view_x01.js
 
 /**
+ * Helper für die neue Last-Turn Anzeige.
+ */
+/**
  * definiert, welche Tabellenzellen zusätzlich bei der Tabellenanzeige bei X01 dargestellt werden sollen
  * wird als Paramater an renderGameTable() übergeben
  */
 const x01TableConfig = [
-    // KORREKTUR: 'true' wird explizit übergeben, um die Icons zu aktivieren
-    { selector: '.game-table__cell--avg-g',       html: player => createOverallAverageHtml(player, 'overall_average', true) },
+    // Wir nutzen wieder die Standard-Source für Punkte
+    { selector: '.game-table__cell--score', source: player => player.score },
+    // NEU: Die dedizierte Last-Turn-Spalte
+    { selector: '.game-table__cell--last-turn', html: player => createLastTurnHtml(player) },
+    
+    { selector: '.game-table__cell--avg-g', html: player => createOverallAverageHtml(player, 'overall_average', true) },
     { selector: '.game-table__cell--avg-m', source: player => formatAverage(player.match_average) },
     { selector: '.game-table__cell--avg-l', source: player => formatAverage(player.leg_average) }
 ];
@@ -18,13 +25,36 @@ const x01TableConfig = [
  * wird als Paramater an renderPlayerCards() übergeben
  */
 const x01CardConfig = [
-    // KORREKTUR: 'true' wird explizit übergeben, um die Icons zu aktivieren
+    // Bei der Karte packen wir es mangels Platz in eine Zeile darunter oder ignorieren es
+    // Hier: Wir fügen es in den neuen Platzhalter ein
+    { selector: '.player-card__last-turn', html: player => createLastTurnHtml(player) },
+    
     { selector: '.player-card__avg-value--g', html: player => createOverallAverageHtml(player, 'overall_average', true) },
     { selector: '.player-card__avg-value--m', source: player => formatAverage(player.match_average) },
     { selector: '.player-card__avg-value--l', source: player => formatAverage(player.leg_average) }
 ];
 
 //------------------------------------------------------------------
+
+function createLastTurnHtml(player) {
+    const score = player.last_turn_score;
+    const darts = player.last_turn_darts || '';
+    
+    // Wenn kein Score da ist, zeigen wir ein leeres Feld oder einen Strich
+    if (score === null || score === undefined) {
+        return '<span style="color: #444;">-</span>';
+    }
+
+    return `
+        <div class="x01-last-turn-container">
+            <span class="x01-last-turn-score">${score}</span>
+            <span class="x01-last-turn-darts">${darts}</span>
+        </div>
+    `;
+}
+
+//------------------------------------------------------------------
+
 
 /**
  * @summary Aktualisiert die komplette Ansicht für den Spielmodus "X01".
@@ -65,4 +95,3 @@ function updateX01View(viewModel) {
     toggleTableColumn('#x01-table', 'avg-g', useDB);
 
 }
-

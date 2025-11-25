@@ -74,6 +74,10 @@ function _displayWinner(fireworks) {
     const winner = players.find(p => p.name === appState.winner_info.player);
     if (!winner) return;
 
+    // NEU: Name auflösen
+    // resolvePlayerName muss global verfügbar sein (ist es durch utils_frontend.js)
+    const winnerDisplayName = resolvePlayerName(winner.name);
+    
     const winnerNameHtml = `<span class="winner-name">${winner.name}</span>`;
     let messageType = 'Leg'; // Standardwert
 

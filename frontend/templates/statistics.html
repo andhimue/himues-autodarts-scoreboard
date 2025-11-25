@@ -7,8 +7,8 @@
     <style>
         body { overflow: auto; } /* Scrollen erlauben */
         .stats-container {
-            width: 95%; /* Nutzung der vollen Breite für viele Spalten */
-            max-width: 1800px;
+            width: 95%; 
+            max-width: 1800px; /* Breit genug für die vielen Spalten */
             margin: 4rem auto;
             background-color: var(--background-secondary);
             padding: 2rem;
@@ -24,12 +24,18 @@
         }
         .stats-table th, .stats-table td {
             border: 1px solid var(--border-color);
-            padding: 0.8rem; /* Etwas kompakteres Padding */
+            padding: 0.8rem;
             text-align: center;
-            font-size: 1.4rem;
+            font-size: 1.3rem; /* Schrift etwas kleiner, damit alles passt */
         }
         .stats-table th { background-color: var(--background-tertiary); color: var(--text-secondary); }
-        .player-name { text-align: left !important; font-weight: bold; color: var(--text-light); min-width: 150px; }
+        .player-name { 
+            text-align: left !important; 
+            font-weight: bold; 
+            color: var(--text-light); 
+            min-width: 150px;
+            text-transform: capitalize; 
+        }
         
         .back-button {
             display: block;
@@ -46,9 +52,10 @@
         }
         .back-button:hover { background-color: var(--primary-color); border-color: var(--primary-color); }
     </style>
-
+    
     <script>
         const IGNORE_PLAYERS = {{ ignore_players | tojson }};
+        const PLAYER_NAME_REPLACEMENTS = {{ player_replacements | tojson }};
     </script>
 </head>
 <body>
@@ -59,7 +66,7 @@
             <thead>
                 <tr>
                     <th rowspan="2">Spieler</th>
-                    <th colspan="5">X01</th>
+                    <th colspan="7">X01</th>
                     <th colspan="3">Cricket</th>
                     <th colspan="3">Tactics</th>
                 </tr>
@@ -67,10 +74,9 @@
                     <th>ø Average (PPR)</th>
                     <th>Legs Gespielt</th>
                     <th>Legs Gewonnen</th>
-                    <th>Matches Gespielt</th>
+                    <th>Quote</th> <th>Matches Gespielt</th>
                     <th>Matches Gewonnen</th>
-                    
-                    <th>ø MPR</th>
+                    <th>Quote</th> <th>ø MPR</th>
                     <th>Legs Gespielt</th>
                     <th>Legs Gewonnen</th>
 
@@ -86,12 +92,19 @@
         <a href="/" class="back-button">Zurück zum Scoreboard</a>
     </div>
 
-<script>
+    <script>
         document.addEventListener('DOMContentLoaded', () => {
             const tableBody = document.querySelector('#stats-table tbody');
             const apiUrl = '/frontend-api/statistics';
 
             console.log("Fetching stats from:", apiUrl);
+
+            function getDisplayName(originalName) {
+                if (PLAYER_NAME_REPLACEMENTS && PLAYER_NAME_REPLACEMENTS[originalName]) {
+                    return PLAYER_NAME_REPLACEMENTS[originalName];
+                }
+                return originalName;
+            }
 
             fetch(apiUrl)
                 .then(response => {
@@ -102,31 +115,41 @@
                 })
                 .then(data => {
                     if (data.error) {
-                        tableBody.innerHTML = `<tr><td colspan="12">Fehler beim Laden: ${data.error}</td></tr>`;
+                        tableBody.innerHTML = `<tr><td colspan="14">Fehler beim Laden: ${data.error}</td></tr>`;
                         return;
                     }
                     
-                    // Filterung anwenden (Case-Sensitive, wie in Config definiert)
                     const filteredData = data.filter(player => !IGNORE_PLAYERS.includes(player.name));
 
-                    // Sortieren nach Namen
-                    filteredData.sort((a, b) => a.name.localeCompare(b.name));
+                    filteredData.sort((a, b) => {
+                        const nameA = getDisplayName(a.name).toLowerCase();
+                        const nameB = getDisplayName(b.name).toLowerCase();
+                        return nameA.localeCompare(nameB);
+                    });
 
                     if (filteredData.length === 0) {
-                        tableBody.innerHTML = `<tr><td colspan="12">Keine Statistiken gefunden.</td></tr>`;
+                        tableBody.innerHTML = `<tr><td colspan="14">Keine Statistiken gefunden.</td></tr>`;
                         return;
                     }
 
                     filteredData.forEach(player => {
                         const row = document.createElement('tr');
                         
+                        const displayName = getDisplayName(player.name);
+                        
                         // X01 Daten
                         const x01 = player.x01 || {};
                         const ppr = x01.ppr ? x01.ppr.toFixed(2) : '-';
+                        
                         const x01Legs = x01.legs_played || 0;
                         const x01LegsWon = x01.legs_won || 0;
+                        // Berechnung Leg Quote
+                        const x01LegsPct = x01Legs > 0 ? ((x01LegsWon / x01Legs) * 100).toFixed(1) + '%' : '-';
+
                         const x01MatchesPlayed = x01.matches_played || 0;
                         const x01MatchesWon = x01.matches_won || 0;
+                        // Berechnung Match Quote
+                        const x01MatchesPct = x01MatchesPlayed > 0 ? ((x01MatchesWon / x01MatchesPlayed) * 100).toFixed(1) + '%' : '-';
                         
                         // Cricket Daten
                         const cricket = player.cricket || {};
@@ -141,14 +164,15 @@
                         const tacWon = tactics.legs_won || 0;
 
                         row.innerHTML = `
-                            <td class="player-name">${player.name}</td>
+                            <td class="player-name">${displayName}</td>
                             
                             <td style="color: var(--primary-color); font-weight: bold;">${ppr}</td>
                             <td>${x01Legs}</td>
                             <td>${x01LegsWon}</td>
+                            <td style="color: #aaa; font-weight: bold;">${x01LegsPct}</td>
                             <td>${x01MatchesPlayed}</td>
                             <td style="color: gold; font-weight: bold;">${x01MatchesWon}</td>
-                            
+                            <td style="color: #aaa; font-weight: bold;">${x01MatchesPct}</td>
                             <td style="color: var(--green-color); font-weight: bold;">${crMpr}</td>
                             <td>${crLegs}</td>
                             <td>${crWon}</td>
@@ -162,7 +186,7 @@
                 })
                 .catch(err => {
                     console.error("Fetch Error:", err);
-                    tableBody.innerHTML = `<tr><td colspan="12">Verbindungsfehler zur API.<br>Details in der Konsole.</td></tr>`;
+                    tableBody.innerHTML = `<tr><td colspan="14">Verbindungsfehler zur API.<br>Details in der Konsole.</td></tr>`;
                 });
         });
     </script>

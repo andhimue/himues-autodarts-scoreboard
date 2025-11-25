@@ -76,6 +76,11 @@ bull_off_winner          = None # Gewinner des Ausbullens
 checkoutsCounter         = {}   # Zählt die Checkout-Versuche pro Spieler.
 lobbyPlayers             = []   # Speichert eine Liste der Spieler, die sich aktuell in einer Lobby befinden.
 
+# --- Caching für Last Turn Darts ---
+last_throw_cache = {}       # Speichert den letzten abgeschlossenen Wurf pro Spieler: { "PlayerName": "T20, 20, 5" }
+current_turn_throws = {}    # Speichert die laufenden Würfe des aktuellen Spielers: { "PlayerName": "T20..." }
+previous_player_index = -1  # Um den Spielerwechsel zu erkennen
+current_leg_index = 0
 
 FIELD_COORDS = {
     "0":   {"x": 0.016160134143785285,  "y": 1.1049884720184449},       "S1":  {"x": 0.2415216935652902,    "y": 0.7347516243974009},

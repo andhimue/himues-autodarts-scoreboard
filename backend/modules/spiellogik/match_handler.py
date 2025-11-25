@@ -70,6 +70,11 @@ def orchestrate_match_start_and_finish(match_event_data, websocket_connection):
             try:
                 g.active_match_id = match_id
 
+                # Cache zurücksetzen
+                g.last_throw_cache = {}
+                g.current_turn_throws = {}
+                g.previous_player_index = -1
+
                 if g.DEBUG:
                     logging.info('Listen to match: %s', g.active_match_id)
                 
@@ -86,6 +91,12 @@ def orchestrate_match_start_and_finish(match_event_data, websocket_connection):
 
                 reset_checkouts_counter()
 
+                # --- Caches zurücksetzen ---
+                g.last_throw_cache = {}
+                g.current_turn_throws = {}
+                g.previous_player_index = -1
+                g.current_leg_index = 0 # Reset Leg Index
+                
                 # Abonieren der Autodarts-Bhannel für das Board und die Matches
                 paramsSubscribeTakeOut =       { "channel": c.AUTODARTS_BOARDS, c.KEY_TYPE: c.TYPE_SUBSCRIBE, "topic": g.AUTODARTS_BOARD_ID + ".events" }
                 websocket_connection.send(json.dumps(paramsSubscribeTakeOut))
@@ -137,7 +148,7 @@ def _initialize_player_data_map(initial_match_data):
     variant = initial_match_data.get(c.KEY_SETTINGS, {}).get(c.KEY_GAME_MODE, initial_match_data.get(c.KEY_VARIANT, '')).lower()
     game_mode_simple = MODE_MAP.get(variant, 'x01')
     
-    # KORREKTUR START: Der Spieler-Loop wird jetzt außerhalb des DB-Blocks ausgeführt.
+    # Der Spieler-Loop wird jetzt außerhalb des DB-Blocks ausgeführt.
     for p_data in initial_match_data.get(c.KEY_PLAYERS, []):
         player_name = p_data.get(c.KEY_NAME, '')
         if not player_name: continue
@@ -187,9 +198,9 @@ def create_universal_game_event(live_game_data):
     Spielmodi. Sie extrahiert alle verfügbaren Informationen aus den
     Autodarts-Daten, baut die vollständige Event-Struktur inklusive einer
     generischen MatchInfo auf, stabilisiert die Spielerreihenfolge und
-    ermittelt den Gewinner nach Standardregeln. Das zurückgegebene Event-Objekt
-    kann anschließend in der spezifischen process_match_*-Funktion bei Bedarf
-    noch modifiziert werden.
+    ermittelt den Gewinner nach Standardregeln.
+    
+    NEU: Ermittelt last_turn_score aus den chalkboards.
 
     Args:
         live_game_data (dict): Der vollständige Live-Spielzustand vom
@@ -202,6 +213,66 @@ def create_universal_game_event(live_game_data):
     if not g.player_data_map:
         _initialize_player_data_map(live_game_data)
 
+    # --- Leg-Wechsel Erkennung ---
+    # Wir holen die aktuelle Leg-Nummer aus den Daten
+    incoming_leg_index = live_game_data.get(c.KEY_LEG, 1)
+    
+    # Wenn sich die Leg-Nummer geändert hat (und es nicht der Start 0->1 ist, 
+    # oder wir erzwingen es auch da sicherheitshalber)
+    if g.current_leg_index != 0 and incoming_leg_index != g.current_leg_index:
+        if g.DEBUG > 0:
+            logging.info(f"Leg-Wechsel erkannt ({g.current_leg_index} -> {incoming_leg_index}). Leere Wurf-Cache.")
+        
+        g.last_throw_cache = {}
+        g.current_turn_throws = {}
+        g.previous_player_index = -1 # Wichtig, damit der erste Spieler im neuen Leg nicht als "Wechsel" vom letzten Spieler des alten Legs erkannt wird
+    
+    g.current_leg_index = incoming_leg_index
+        # --- LOGIK FÜR LAST TURN DARTS CACHE ---
+    current_player_idx = live_game_data.get(c.KEY_PLAYER, 0)
+    raw_players = live_game_data.get(c.KEY_PLAYERS, [])
+    turns_data = live_game_data.get(c.KEY_TURNS, [])
+    
+    # 1. Spielerwechsel erkennen
+    if g.previous_player_index != -1 and g.previous_player_index != current_player_idx:
+        # Der Spieler hat gewechselt! 
+        # Wir müssen die "laufenden" Würfe des VORHERIGEN Spielers in den "festen" Cache schieben.
+        if 0 <= g.previous_player_index < len(raw_players):
+            prev_player_name = raw_players[g.previous_player_index].get(c.KEY_NAME)
+            if prev_player_name:
+                # Speichere den letzten Stand aus dem temporären Speicher in den permanenten Cache
+                last_throws = g.current_turn_throws.get(prev_player_name, "")
+                g.last_throw_cache[prev_player_name] = last_throws
+                # Lösche den temporären Speicher für diesen Spieler
+                g.current_turn_throws[prev_player_name] = ""
+
+    g.previous_player_index = current_player_idx
+
+    # 2. Aktuelle Würfe mitschneiden
+    # Wir holen uns die Darts des AKTUELLEN Spielers aus dem Event und speichern sie temporär.
+    if 0 <= current_player_idx < len(raw_players):
+        curr_player_name = raw_players[current_player_idx].get(c.KEY_NAME)
+        
+        # Wir suchen den Turn des aktuellen Spielers
+        # Der aktuelle Spieler hat in 'turns' meist den ersten Eintrag, aber wir filtern sicherheitshalber nach ID
+        curr_player_id = raw_players[current_player_idx].get('id')
+        current_turn_obj = next((t for t in turns_data if t.get('playerId') == curr_player_id), None)
+        
+        if current_turn_obj:
+            throws = current_turn_obj.get('throws', [])
+            dart_strs = []
+            for t in throws:
+                seg = t.get('segment', {})
+                name = seg.get('name', '?')
+                if name == '25': name = 'Bull'
+                dart_strs.append(name)
+            
+            # Nur aktualisieren, wenn auch wirklich Darts da sind (verhindert Überschreiben mit leer beim Wechsel)
+            # Oder: Wir speichern den String, auch wenn er leer ist (am Anfang der Aufnahme).
+            # Aber wir wollen ja, dass 'last_turn_darts' erst überschrieben wird, wenn der nächste Spieler dran ist.
+            # Hier geht es um 'current_turn_throws'. Das soll den IST-Zustand abbilden.
+            g.current_turn_throws[curr_player_name] = ", ".join(dart_strs)
+    
     settings = live_game_data.get(c.KEY_SETTINGS, {})
 
     # 1. Generische MatchInfo direkt aus den Daten erstellen
@@ -229,11 +300,16 @@ def create_universal_game_event(live_game_data):
 
     # 3. Basis-Spielerliste erstellen und anreichern
     all_players = []
+    
+    # Chalkboards extrahieren (für last_turn_score)
+    # Die Reihenfolge im chalkboards-Array entspricht der Reihenfolge im players-Array dieses Events.
+    chalkboards = live_game_data.get('chalkboards', [])
+    
     for i, p_data in enumerate(live_game_data.get(c.KEY_PLAYERS, [])):
         player_name = p_data.get(c.KEY_NAME, '')
         player_name_lower = player_name.lower()
         
-        # GEÄNDERT: Greift nur noch auf die eine, zentrale Map zu
+        # Greift nur noch auf die eine, zentrale Map zu
         player_info_from_map = g.player_data_map.get(player_name_lower, {})
 
         # Wenn für diesen Spieler noch keine Anzeigereihenfolge gesetzt ist,
@@ -254,6 +330,21 @@ def create_universal_game_event(live_game_data):
         legs_won         = scores_list[i].get(c.KEY_LEGS, 0) if scores_list and i < len(scores_list) else 0
         sets_won         = scores_list[i].get(c.KEY_SETS, 0) if scores_list and i < len(scores_list) else 0
 
+        # --- Last Turn Score aus Chalkboards ermitteln ---
+        # Da chalkboards parallel zu players sortiert ist, können wir 'i' nutzen.
+        last_turn_score = None
+        if i < len(chalkboards):
+            rows = chalkboards[i].get('rows', [])
+            if rows:
+                # Nimm den allerletzten Eintrag in den rows.
+                # Das ist zuverlässiger als 'turns', da es die abgeschlossene Historie ist.
+                last_entry = rows[-1]
+                last_turn_score = last_entry.get('points')
+
+        # --- Last Turn Darts (aus Cache) ---
+        # Wir lesen einfach aus dem Cache. Der wird oben aktualisiert.
+        last_turn_darts = g.last_throw_cache.get(player_name, "")
+        
         player = PlayerInfo(
             name=player_name,
             # GEÄNDERT: Alle Daten kommen aus der neuen Map
@@ -267,7 +358,9 @@ def create_universal_game_event(live_game_data):
             overall_hit_rate=player_info_from_map.get(c.KEY_OA_HIT_RATE, 0.0),
             overall_ppr=player_info_from_map.get(c.KEY_OA_PPR, 0.0),
             leg_average     = stats.get(c.KEY_LEG_STATS, {}).get(c.KEY_AVERAGE, 0),
-            match_average   = stats.get(c.KEY_MATCH_STATS, {}).get(c.KEY_AVERAGE, 0)
+            match_average   = stats.get(c.KEY_MATCH_STATS, {}).get(c.KEY_AVERAGE, 0),
+            last_turn_score = last_turn_score, 
+            last_turn_darts = last_turn_darts
         )
         all_players.append(player)
 
