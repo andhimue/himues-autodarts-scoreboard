@@ -1,9 +1,10 @@
 #!/usr/bin/env python3
-# update_gitlab.py - Update-Skript für lokalen GitLab-Server (origin) mit DB-Migration
+# update_gitlab.py - Update-Skript für lokalen GitLab-Server (origin) mit Smart-Config-Merge & DB-Migration
 import os
 import sys
 import subprocess
 import shutil
+import re
 
 # --- Konfiguration ---
 SCRIPT_DIR = os.path.dirname(os.path.realpath(__file__))
@@ -13,12 +14,11 @@ FRONTEND_SERVICE = "himues-scoreboard-frontend.service"
 TARGET_REMOTE = "origin" # Im GitLab-Kontext ist origin oft der lokale GitLab
 TARGET_BRANCH = "main"
 
-# Diese Dateien werden vor dem Reset gesichert und danach wiederhergestellt
-FILES_TO_PRESERVE = [
-    "backend/config.py",
-    "backend/.env",
-    "frontend/config_frontend.py"
-]
+# Config-Dateien
+CONFIG_BACKEND = "backend/config.py"
+CONFIG_FRONTEND = "frontend/config_frontend.py"
+FILES_TO_PROCESS = [CONFIG_BACKEND, CONFIG_FRONTEND]
+ENV_FILE = "backend/.env"
 
 # --- Farbdefinitionen ---
 class color:
@@ -51,30 +51,86 @@ def get_service_mode():
     else:
         return "user", ["systemctl", "--user"]
 
-def backup_config_files():
-    print_info("Sichere lokale Konfigurationsdateien...")
-    for rel_path in FILES_TO_PRESERVE:
-        full_path = os.path.join(SCRIPT_DIR, rel_path)
-        backup_path = full_path + ".update_bak"
-        if os.path.exists(full_path):
-            shutil.copy2(full_path, backup_path)
+# --- Config Merge Logik ---
 
-def restore_config_files():
-    print_info("Stelle lokale Konfigurationsdateien wieder her...")
-    for rel_path in FILES_TO_PRESERVE:
+def parse_config_values(file_path):
+    values = {}
+    if not os.path.exists(file_path): return values
+    with open(file_path, 'r', encoding='utf-8') as f: content = f.read()
+    try:
+        local_scope = {}
+        exec(content, {}, local_scope)
+        for key, val in local_scope.items():
+            if not key.startswith('_') and not hasattr(val, '__name__'): values[key] = val
+    except Exception as e:
+        print_warning(f"Konnte Werte aus {file_path} nicht via exec() parsen: {e}. Nutze Fallback.")
+        with open(file_path, 'r') as f:
+            for line in f:
+                match = re.match(r'^([A-Z_][A-Z0-9_]*)\s*=\s*(.*)', line.strip())
+                if match: values[match.group(1)] = match.group(2)
+    return values
+
+def format_python_value(value):
+    if isinstance(value, str): return f'"{value}"'
+    if isinstance(value, bool): return str(value)
+    return repr(value)
+
+def merge_configs(target_file, source_values):
+    if not os.path.exists(target_file): return
+    print_info(f"Merge Konfiguration für {target_file}...")
+    with open(target_file, 'r', encoding='utf-8') as f: lines = f.readlines()
+    new_lines = []
+    skip_mode = False
+    for line in lines:
+        if skip_mode:
+            if line.strip().startswith('}') or line.strip().startswith(']'): skip_mode = False
+            continue
+        match = re.match(r'^([A-Z_][A-Z0-9_]*)\s*=', line.strip())
+        if match:
+            var_name = match.group(1)
+            if var_name in source_values:
+                old_val = source_values[var_name]
+                inline_comment = ''
+                if '#' in line:
+                    parts = line.split('#', 1)
+                    if not (parts[0].count('"') % 2 == 1 or parts[0].count("'") % 2 == 1):
+                        inline_comment = ' # ' + parts[1].strip()
+                indentation = re.match(r'^\s*', line).group(0)
+                formatted_val = format_python_value(old_val)
+                new_lines.append(f"{indentation}{var_name} = {formatted_val}{inline_comment}\n")
+                val_part = line.split('=', 1)[1].strip()
+                if val_part.startswith('{') and not '}' in val_part: skip_mode = True
+                if val_part.startswith('[') and not ']' in val_part: skip_mode = True
+            else: new_lines.append(line)
+        else: new_lines.append(line)
+    with open(target_file, 'w', encoding='utf-8') as f: f.writelines(new_lines)
+
+def backup_user_configs():
+    configs = {}
+    print_info("Lese aktuelle Benutzer-Konfigurationen...")
+    env_path = os.path.join(SCRIPT_DIR, ENV_FILE)
+    if os.path.exists(env_path): shutil.copy2(env_path, env_path + ".bak")
+    for rel_path in FILES_TO_PROCESS:
         full_path = os.path.join(SCRIPT_DIR, rel_path)
-        backup_path = full_path + ".update_bak"
-        if os.path.exists(backup_path):
-            shutil.move(backup_path, full_path)
+        if os.path.exists(full_path):
+            shutil.copy2(full_path, full_path + ".bak_full")
+            configs[rel_path] = parse_config_values(full_path)
+    return configs
+
+def restore_and_merge_configs(saved_values):
+    print_info("Stelle Konfigurationen wieder her (Merge)...")
+    env_path = os.path.join(SCRIPT_DIR, ENV_FILE)
+    if os.path.exists(env_path + ".bak"): shutil.move(env_path + ".bak", env_path)
+    for rel_path, values in saved_values.items():
+        full_path = os.path.join(SCRIPT_DIR, rel_path)
+        if os.path.exists(full_path): merge_configs(full_path, values)
+        else: print_warning(f"Neue Config {rel_path} nicht gefunden.")
 
 def update_database_schema():
-    """
-    Führt Schema-Updates und Migrationen durch.
-    """
     print_header("Datenbank-Schema & Migration")
     python_executable = os.path.join(VENV_DIR, "bin", "python")
     
-    # 1. Schema-Update (Spalten hinzufügen) - identischer Inline-Block wie in update.py
+    # 1. Schema-Update
     schema_script = """
 import os
 import sys
@@ -134,11 +190,13 @@ except Exception as e: print(f"Schema Update Fehler: {e}")
     except subprocess.CalledProcessError:
         print_warning("Schema-Update-Check mit Warnung beendet.")
 
-    # 2. Migration
+    # 2. Daten-Migration
     migrate_script = os.path.join(SCRIPT_DIR, "migrate_database.py")
     if os.path.exists(migrate_script):
         print_info("Führe Daten-Migration aus...")
         run_command([python_executable, migrate_script], cwd=SCRIPT_DIR)
+    else:
+        print_warning("migrate_database.py nicht gefunden.")
 
 def main():
     print_header("Himues Darts Scoreboard - Update (GitLab)")
@@ -154,13 +212,18 @@ def main():
     print_success("Dienste gestoppt.")
 
     print_header("Aktualisiere Quellcode...")
-    backup_config_files()
+    # A. Werte sichern
+    saved_config_values = backup_user_configs()
+
     print_info(f"Lade neuesten Stand von '{TARGET_REMOTE}'...")
     run_command(["git", "fetch", TARGET_REMOTE], cwd=SCRIPT_DIR)
     print_info(f"Setze lokalen Stand hart auf '{TARGET_REMOTE}/{TARGET_BRANCH}' zurück...")
     run_command(["git", "reset", "--hard", f"{TARGET_REMOTE}/{TARGET_BRANCH}"], cwd=SCRIPT_DIR)
-    restore_config_files()
-    print_success("Quellcode aktualisiert.")
+    
+    # B. Werte in neue Dateien mergen
+    restore_and_merge_configs(saved_config_values)
+    
+    print_success("Quellcode aktualisiert und Konfigurationen gemerged.")
 
     print_header("Aktualisiere Python-Abhängigkeiten...")
     pip_executable = os.path.join(VENV_DIR, "bin", "pip")

@@ -65,3 +65,10 @@ PLAYER_NAME_REPLACEMENTS = {
     "biene14": "Corinna",
     "himue": "andreas"
 }
+
+
+
+
+# Steuert die Anzeige der letzten Aufnahme (Score + Darts) in X01
+# Kann per URL-Parameter ?sl (Show Last) oder ?nl (No Last) überschrieben werden.
+SHOW_LAST_POINTS = True

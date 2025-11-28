@@ -22,8 +22,13 @@
                     {% if var.type == 'boolean' %}
                         <input type="checkbox" id="{{ var.name }}" name="{{ var.name }}" {% if var.value %}checked{% endif %}>
                         <label for="{{ var.name }}" class="checkbox-label">Aktiviert</label>
+                    
                     {% elif var.type == 'integer' %}
                         <input type="number" id="{{ var.name }}" name="{{ var.name }}" value="{{ var.value }}">
+                    
+                    {% elif var.type == 'dictionary' %}
+                        <textarea id="{{ var.name }}" name="{{ var.name }}" rows="5" style="width: 100%; font-family: monospace; background-color: #383838; color: #e0e0e0; border: 1px solid #555; border-radius: 4px; padding: 0.5rem;">{{ var.value }}</textarea>
+                    
                     {% else %}
                         <input type="text" id="{{ var.name }}" name="{{ var.name }}" value="{{ var.value }}">
                     {% endif %}

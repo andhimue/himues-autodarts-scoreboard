@@ -183,9 +183,9 @@ function createBaseViewModel() {
     if (currentPlayer) {
         viewModel.focus.score.text = currentPlayer.score;
 
-        // NEU: Name auflösen
+        // Name auflösen
         viewModel.focus.player_name.text = resolvePlayerName(currentPlayer.name);
-        viewModel.focus.player_name.visible = true; // Name immer anzeigen wenn Spieler da ist
+        viewModel.focus.player_name.visible = false;
     }
         
     // Darts befüllen

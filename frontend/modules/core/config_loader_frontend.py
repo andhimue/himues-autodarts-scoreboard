@@ -65,7 +65,9 @@ def load_and_parse_config_frontend():
     g.BROWSER_NAMES_TO_SHOW_ONLY_VIDEO =                                                 getattr(config, 'BROWSER_NAMES_TO_SHOW_ONLY_VIDEO', ["Tizen 5.0"])
 
     # Lade die Ignore-Liste für die Satisic-Anzeige
-    g.STATS_IGNORE_PLAYERS             = getattr(config, 'STATS_IGNORE_PLAYERS', [])
+    g.STATS_IGNORE_PLAYERS             =                                                 getattr(config, 'STATS_IGNORE_PLAYERS', [])
 
     # Lade das Namens-Mapping
-    g.PLAYER_NAME_REPLACEMENTS         = getattr(config, 'PLAYER_NAME_REPLACEMENTS', {})
+    g.PLAYER_NAME_REPLACEMENTS         =                                                 getattr(config, 'PLAYER_NAME_REPLACEMENTS', {})
+    # NEU: Lade die X01 Last Point Anzeige Einstellung
+    g.SHOW_LAST_POINTS                 = _to_bool(os.getenv("SHOW_LAST_POINTS",          getattr(config, 'SHOW_LAST_POINTS', True)))

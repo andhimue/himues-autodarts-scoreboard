@@ -79,7 +79,8 @@ def index():
         show_match_duration=g.SHOW_MATCH_DURATION,
         show_duration_in_gamerules=g.SHOW_DURATION_IN_GAMERULES,
         match_duration_interval=g.MATCH_DURATION_INTERVAL,
-        player_replacements=g.PLAYER_NAME_REPLACEMENTS
+        player_replacements=g.PLAYER_NAME_REPLACEMENTS,
+        show_last_points=g.SHOW_LAST_POINTS
     )
 
 #------------------------------------------

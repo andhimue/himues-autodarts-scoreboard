@@ -39,6 +39,9 @@ STATS_IGNORE_PLAYERS = []
 # Mapping für Namensersetzungen
 PLAYER_NAME_REPLACEMENTS = {}
 
+# Steuert die Anzeige der letzten Aufnahme in X01
+SHOW_LAST_POINTS = True
+
 # --- Geteilte Applikations-Objekte (Platzhalter) ---
 # Werden von app.py beim Start befüllt.
 socketio_server         = None

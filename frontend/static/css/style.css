@@ -423,7 +423,7 @@ body {
     text-overflow: ellipsis;
 }
 
-.player-card__points {
+.player-card__points, .player-card__score {
     font-size: 3rem;
     color: var(--primary-color);
 }

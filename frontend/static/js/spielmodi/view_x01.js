@@ -10,7 +10,7 @@
 const x01TableConfig = [
     // Wir nutzen wieder die Standard-Source für Punkte
     { selector: '.game-table__cell--score', source: player => player.score },
-    // NEU: Die dedizierte Last-Turn-Spalte
+    // Die dedizierte Last-Turn-Spalte
     { selector: '.game-table__cell--last-turn', html: player => createLastTurnHtml(player) },
     
     { selector: '.game-table__cell--avg-g', html: player => createOverallAverageHtml(player, 'overall_average', true) },
@@ -25,9 +25,9 @@ const x01TableConfig = [
  * wird als Paramater an renderPlayerCards() übergeben
  */
 const x01CardConfig = [
-    // Bei der Karte packen wir es mangels Platz in eine Zeile darunter oder ignorieren es
+    // Bei der Karte packen wir LastTurn mangels Platz in eine Zeile darunter oder ignorieren es
     // Hier: Wir fügen es in den neuen Platzhalter ein
-    { selector: '.player-card__last-turn', html: player => createLastTurnHtml(player) },
+    { selector: '.player-card__last-turn', html: player => createLastTurnHtml(player, true) },
     
     { selector: '.player-card__avg-value--g', html: player => createOverallAverageHtml(player, 'overall_average', true) },
     { selector: '.player-card__avg-value--m', source: player => formatAverage(player.match_average) },
@@ -36,7 +36,10 @@ const x01CardConfig = [
 
 //------------------------------------------------------------------
 
-function createLastTurnHtml(player) {
+/**
+ * Helper für die neue Last-Turn Anzeige.
+ */
+function createLastTurnHtml(player, Card=false) {
     const score = player.last_turn_score;
     const darts = player.last_turn_darts || '';
     
@@ -45,12 +48,21 @@ function createLastTurnHtml(player) {
         return '<span style="color: #444;">-</span>';
     }
 
+    if (Card) {
     return `
+        <div class="x01-last-turn-container">
+            <span class="x01-last-turn-score">Last: ${score}</span>
+            <span class="x01-last-turn-darts">${darts}</span>
+        </div>
+    `;
+    } else {
+        return `
         <div class="x01-last-turn-container">
             <span class="x01-last-turn-score">${score}</span>
             <span class="x01-last-turn-darts">${darts}</span>
         </div>
     `;
+    }
 }
 
 //------------------------------------------------------------------
@@ -80,14 +92,35 @@ function updateX01View(viewModel) {
         displayMode = 'table';
     }
 
+    // --- Logik für Sichtbarkeit der Last-Turn Anzeige ---
+    // 1. Standard aus Config
+    let showLastPoints = (typeof SHOW_LAST_POINTS_CONFIG !== 'undefined') ? SHOW_LAST_POINTS_CONFIG : true;
+    
+    // 2. URL-Parameter Override
+    if (URL_PARAMS.has('sl')) { // Show Last
+        showLastPoints = true;
+    } else if (URL_PARAMS.has('nl')) { // No Last
+        showLastPoints = false;
+    }
+
     if (displayMode === 'table') {
         UI.x01CardContainer.hide();
         UI.x01Table.show();
         renderGameTable(UI.x01Table, '#x01-table-row-template', players, current_player_index, x01TableConfig);
+
+        // Spalte ein-/ausblenden basierend auf Config/URL
+        toggleTableColumn('#x01-table', 'last-turn', showLastPoints);
     } else {
         UI.x01Table.hide();
         UI.x01CardContainer.show();
         renderPlayerCards(UI.x01CardContainer, '#x01-player-card-template', players, current_player_index, x01CardConfig);
+
+        // Element in Karte ein-/ausblenden
+        if (showLastPoints) {
+            $('.player-card__last-turn').show();
+        } else {
+            $('.player-card__last-turn').hide();
+        }
     }
 
     // Spalte für Gesamt-Average ein-/ausblenden
