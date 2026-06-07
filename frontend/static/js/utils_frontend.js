@@ -257,7 +257,9 @@ function createBaseViewModel() {
 
             // Logik zur Anpassung des Anzeigenamens für geworfene Darts
             let displayName = dart.segment.name;
-            if (displayName === "Bull") {
+            if (displayName.startsWith('M')) {
+                displayName = "Out";
+            } else if (displayName === "Bull") {
                 displayName = "👁";
             } else if (displayName === "25") {
                 displayName = "Bull";
@@ -273,7 +275,9 @@ function createBaseViewModel() {
                 } else {
                     // Dieselbe Logik auch für den Checkout-Guide anwenden
                     let guideName = guide.name;
-                    if (guideName === "Bull") {
+                    if (guideName.startsWith('M')) {
+                        guideName = "Out";
+                    } else if (guideName === "Bull") {
                         guideName = "👁";
                     } else if (guideName === "25") {
                         guideName = "Bull";

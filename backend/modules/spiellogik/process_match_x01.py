@@ -6,7 +6,7 @@ from ..core import shared_state as g
 from ..core import constants as c
 from .match_handler import create_universal_game_event
 
-from ..core.database_handler import (
+from ..database.database_handler import (
     get_db_connection, get_player_data_from_db, create_guest_player,
     save_leg_to_history, update_and_register_player, 
     calculate_and_update_guest_average

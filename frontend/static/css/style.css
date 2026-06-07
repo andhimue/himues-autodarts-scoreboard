@@ -828,7 +828,7 @@ body {
 }
 
 /* ===================================================================
-   13. Erweiterung für X01 Last-Turn Anzeige (NEU)
+   13. Erweiterung für X01 Last-Turn Anzeige
    =================================================================== */
 
 .x01-last-turn-container {
@@ -863,4 +863,76 @@ body {
     font-size: 1.2rem;
     color: #999;
     margin-bottom: 0.5rem;
+}
+
+/* ===================================================================
+   14. Statistiken
+   =================================================================== */
+
+/* Spezifischer Body-Style für die Statistik-Seite, um Scrollen zu erlauben */
+body.statistics-page {
+    overflow: auto; /* Überschreibt das globale overflow: hidden */
+}
+
+.stats-container {
+    width: 98%; 
+    max-width: 1900px;
+    margin: 4rem auto;
+    background-color: var(--background-secondary);
+    padding: 2rem;
+    border-radius: 1rem;
+    box-shadow: 0 4px 15px rgba(0,0,0,0.5);
+}
+
+.stats-container h1 {
+    text-align: center;
+    color: var(--primary-color);
+    margin-bottom: 2rem;
+}
+
+.stats-table {
+    width: 100%;
+    border-collapse: collapse;
+    margin-top: 1rem;
+}
+
+.stats-table th, .stats-table td {
+    border: 1px solid var(--border-color);
+    padding: 0.6rem;
+    text-align: center;
+    font-size: 1.2rem;
+}
+
+.stats-table th {
+    background-color: var(--background-tertiary);
+    color: var(--text-secondary);
+}
+
+/* Wichtig: Wir nutzen hier den Klassennamen, den wir auch im JS setzen */
+.stats-table .player-name { 
+    text-align: left !important; 
+    font-weight: bold; 
+    color: var(--text-light); 
+    min-width: 150px;
+    text-transform: capitalize; 
+}
+
+.back-button {
+    display: block;
+    width: 200px;
+    margin: 2rem auto;
+    text-align: center;
+    padding: 1rem;
+    background-color: var(--background-tertiary);
+    color: var(--text-light);
+    text-decoration: none;
+    border-radius: 0.5rem;
+    font-size: 1.2rem;
+    border: 1px solid var(--border-color);
+    transition: all 0.2s ease-in-out;
+}
+
+.back-button:hover {
+    background-color: var(--primary-color);
+    border-color: var(--primary-color);
 }

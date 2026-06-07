@@ -45,7 +45,7 @@ def load_and_parse_config():
         g.DB_PORT = int(port_value)
     except (ValueError, TypeError):
         g.DB_PORT = 3306
-        
+
     g.DEBUG                           = _to_bool(                                        getattr(config, 'DEBUG', g.DEBUG))
     
  

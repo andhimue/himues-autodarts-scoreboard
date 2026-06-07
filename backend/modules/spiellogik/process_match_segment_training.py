@@ -7,7 +7,7 @@ from ..core import constants as c
 from ..core.utils_backend import log_function_call
 from ..core.event_structure import MatchInfo
 from .match_handler import create_universal_game_event
-from ..core.database_handler import get_db_connection, get_player_data_from_db, create_guest_player, save_leg_to_history, calculate_and_update_guest_average
+from ..database.database_handler import get_db_connection, get_player_data_from_db, create_guest_player, save_leg_to_history, calculate_and_update_guest_average
 
 
 @dataclass

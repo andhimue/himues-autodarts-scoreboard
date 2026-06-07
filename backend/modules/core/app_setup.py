@@ -13,6 +13,7 @@ from ..core import security_module
 from .config_loader import load_and_parse_config
 from .utils_backend import check_already_running, setup_logger
 from ..autodarts.autodarts_websocket import connect_autodarts
+from ..database.database_handler import init_database_adapter
 
 #--------------------------------------
 
@@ -100,6 +101,7 @@ def init_base_app(is_gunicorn):
     g.BACKEND_DIR = os.path.dirname(os.path.dirname(os.path.dirname(os.path.realpath(__file__))))
     
     load_and_parse_config()
+    init_database_adapter()      # <--- NEU: Datenbank-Adapter initialisieren
     _validate_configuration()
     atexit.register(shutdown_cleanup)
 

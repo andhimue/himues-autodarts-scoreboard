@@ -1,4 +1,4 @@
-# Backend/modules/autodarts/websocket_handlers.py
+# Backend/modules/autodarts/autodarts_websocket.py
 
 import logging
 import json
@@ -220,7 +220,7 @@ def on_open_autodarts(websocket_connection):
         websocket_connection.send(json.dumps(params))
         logging.info('Receiving live information for board-id: %s', g.AUTODARTS_BOARD_ID)
     except Exception as e:
-        logging.error('Websocket-Conenction-Open-boards failed: %s', e)
+        logging.error('Websocket-Connection-Open-boards failed: %s', e)
 
     try:
         user_id = security_module.get_user_id()
@@ -228,7 +228,7 @@ def on_open_autodarts(websocket_connection):
         websocket_connection.send(json.dumps(params))
         logging.info('Receiving live information for user-id: %s\r\n', user_id)
     except Exception as e:
-        logging.error('Websocket-Conenction-Open-users failed: %s', e)
+        logging.error('Websocket-Connection-Open-users failed: %s', e)
             
 #----------------------------------------------------
 
@@ -266,10 +266,10 @@ def on_error_autodarts(websocket_connection, error):
         error (Exception):    Das aufgetretene Fehlerobjekt.
     """
     try:
-        logging.error('Websocket-Conenction-Error: %s', error)
+        logging.error('Websocket-Connection-Error: %s', error)
 
     except Exception as e:
-        logging.error('Websocket-Conenction-Error logging failed: %s', e)
+        logging.error('Websocket-Connection-Error logging failed: %s', e)
 
 #----------------------------------------------------
 
@@ -335,19 +335,18 @@ def on_message_autodarts(websocket_connection, message):
                 handler(m, websocket_connection)
 
         except Exception as e:
-#            logging.error('Websocket-Conenction-Message failed: %s', e)
+#            logging.error('Websocket-Connection-Message failed: %s', e)
             # --- HIER IST DIE ÄNDERUNG ---
             # Wir formatieren den kompletten Traceback in einen String
             tb_str = traceback.format_exc()
             
             # Und geben ihn im Fehlerlog aus
-            logging.error(f"Websocket-Conenction-Message failed:\n{tb_str}")
             if g.DEBUG > 0:
                 # Wir formatieren den kompletten Traceback in einen String
                 tb_str = traceback.format_exc()
                 
                 # Und geben ihn im Fehlerlog aus
-                logging.error(f"Websocket-Conenction-Message failed:\n{tb_str}")
+                logging.error(f"Websocket-Connection-Message failed:\n{tb_str}")
 
 #----------------------------------------------------
 # Hilfsfunktionen für on_message_autodarts

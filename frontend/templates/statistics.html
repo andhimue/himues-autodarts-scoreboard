@@ -4,61 +4,13 @@
     <meta charset="UTF-8">
     <title>Spieler-Statistiken</title>
     <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
-    <style>
-        body { overflow: auto; } /* Scrollen erlauben */
-        .stats-container {
-            width: 95%; 
-            max-width: 1800px; /* Breit genug für die vielen Spalten */
-            margin: 4rem auto;
-            background-color: var(--background-secondary);
-            padding: 2rem;
-            border-radius: 1rem;
-            box-shadow: 0 4px 15px rgba(0,0,0,0.5);
-        }
-        h1 { text-align: center; color: var(--primary-color); margin-bottom: 2rem; }
-        
-        .stats-table {
-            width: 100%;
-            border-collapse: collapse;
-            margin-top: 1rem;
-        }
-        .stats-table th, .stats-table td {
-            border: 1px solid var(--border-color);
-            padding: 0.8rem;
-            text-align: center;
-            font-size: 1.3rem; /* Schrift etwas kleiner, damit alles passt */
-        }
-        .stats-table th { background-color: var(--background-tertiary); color: var(--text-secondary); }
-        .player-name { 
-            text-align: left !important; 
-            font-weight: bold; 
-            color: var(--text-light); 
-            min-width: 150px;
-            text-transform: capitalize; 
-        }
-        
-        .back-button {
-            display: block;
-            width: 200px;
-            margin: 2rem auto;
-            text-align: center;
-            padding: 1rem;
-            background-color: var(--background-tertiary);
-            color: var(--text-light);
-            text-decoration: none;
-            border-radius: 0.5rem;
-            font-size: 1.2rem;
-            border: 1px solid var(--border-color);
-        }
-        .back-button:hover { background-color: var(--primary-color); border-color: var(--primary-color); }
-    </style>
     
     <script>
         const IGNORE_PLAYERS = {{ ignore_players | tojson }};
         const PLAYER_NAME_REPLACEMENTS = {{ player_replacements | tojson }};
     </script>
 </head>
-<body>
+<body class="statistics-page">
     <div class="stats-container">
         <h1>Langzeit-Statistiken</h1>
         
@@ -66,17 +18,21 @@
             <thead>
                 <tr>
                     <th rowspan="2">Spieler</th>
-                    <th colspan="7">X01</th>
+                    <th colspan="8">X01</th>
                     <th colspan="3">Cricket</th>
                     <th colspan="3">Tactics</th>
                 </tr>
                 <tr>
-                    <th>ø Average (PPR)</th>
+                    <th>ø Avg (Server)</th>
+                    <th>ø Lokal</th>
                     <th>Legs Gespielt</th>
                     <th>Legs Gewonnen</th>
-                    <th>Quote</th> <th>Matches Gespielt</th>
+                    <th>Quote</th>
+                    <th>Matches Gespielt</th>
                     <th>Matches Gewonnen</th>
-                    <th>Quote</th> <th>ø MPR</th>
+                    <th>Quote</th>
+                    
+                    <th>ø MPR</th>
                     <th>Legs Gespielt</th>
                     <th>Legs Gewonnen</th>
 
@@ -115,7 +71,7 @@
                 })
                 .then(data => {
                     if (data.error) {
-                        tableBody.innerHTML = `<tr><td colspan="14">Fehler beim Laden: ${data.error}</td></tr>`;
+                        tableBody.innerHTML = `<tr><td colspan="15">Fehler beim Laden: ${data.error}</td></tr>`;
                         return;
                     }
                     
@@ -128,27 +84,29 @@
                     });
 
                     if (filteredData.length === 0) {
-                        tableBody.innerHTML = `<tr><td colspan="14">Keine Statistiken gefunden.</td></tr>`;
+                        tableBody.innerHTML = `<tr><td colspan="15">Keine Statistiken gefunden.</td></tr>`;
                         return;
                     }
 
                     filteredData.forEach(player => {
                         const row = document.createElement('tr');
-                        
                         const displayName = getDisplayName(player.name);
                         
                         // X01 Daten
                         const x01 = player.x01 || {};
                         const ppr = x01.ppr ? x01.ppr.toFixed(2) : '-';
                         
+                        let localPpr = '-';
+                        if (player.is_registered && x01.local_ppr > 0) {
+                            localPpr = x01.local_ppr.toFixed(2);
+                        }
+
                         const x01Legs = x01.legs_played || 0;
                         const x01LegsWon = x01.legs_won || 0;
-                        // Berechnung Leg Quote
                         const x01LegsPct = x01Legs > 0 ? ((x01LegsWon / x01Legs) * 100).toFixed(1) + '%' : '-';
 
                         const x01MatchesPlayed = x01.matches_played || 0;
                         const x01MatchesWon = x01.matches_won || 0;
-                        // Berechnung Match Quote
                         const x01MatchesPct = x01MatchesPlayed > 0 ? ((x01MatchesWon / x01MatchesPlayed) * 100).toFixed(1) + '%' : '-';
                         
                         // Cricket Daten
@@ -167,12 +125,15 @@
                             <td class="player-name">${displayName}</td>
                             
                             <td style="color: var(--primary-color); font-weight: bold;">${ppr}</td>
+                            <td style="color: #aaa; font-style: italic;">${localPpr}</td>
                             <td>${x01Legs}</td>
                             <td>${x01LegsWon}</td>
-                            <td style="color: #aaa; font-weight: bold;">${x01LegsPct}</td>
+                            <td style="font-size: 0.9em; color: #aaa;">${x01LegsPct}</td>
+                            
                             <td>${x01MatchesPlayed}</td>
                             <td style="color: gold; font-weight: bold;">${x01MatchesWon}</td>
-                            <td style="color: #aaa; font-weight: bold;">${x01MatchesPct}</td>
+                            <td style="font-size: 0.9em; color: #aaa;">${x01MatchesPct}</td>
+                            
                             <td style="color: var(--green-color); font-weight: bold;">${crMpr}</td>
                             <td>${crLegs}</td>
                             <td>${crWon}</td>
@@ -186,7 +147,7 @@
                 })
                 .catch(err => {
                     console.error("Fetch Error:", err);
-                    tableBody.innerHTML = `<tr><td colspan="14">Verbindungsfehler zur API.<br>Details in der Konsole.</td></tr>`;
+                    tableBody.innerHTML = `<tr><td colspan="15">Verbindungsfehler zur API.<br>Details in der Konsole.</td></tr>`;
                 });
         });
     </script>

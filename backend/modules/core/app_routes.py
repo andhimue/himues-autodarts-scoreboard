@@ -10,7 +10,7 @@ from flask_cors import CORS
 from . import shared_state as g
 from .utils_backend import log_function_call
 
-from .database_handler import get_all_player_statistics
+from .statistics import get_all_player_statistics
 
 # --- Initialisierung von Flask und SocketIO ---
 
@@ -144,15 +144,15 @@ def get_current_game_state():
 @log_function_call
 def statistics_view():
     """
-    Liefert aggregierte Statistiken aller Spieler als JSON.
+    Liefert aggregierte Statistiken aller Spieler als JSON (lokale DB).
     """
     try:
         stats = get_all_player_statistics()
         return jsonify(stats)
     except Exception as e:
+        import logging
         logging.error(f"Fehler in statistics_view: {e}")
         return jsonify({'error': str(e)}), 500
 
-# WICHTIG: Importiere die Socket.IO-Handler am Ende, damit sie sich
-# bei der `socketio`-Instanz (die in dieser Datei erstellt wird) registrieren können.
+# WICHTIG: Importiere die Socket.IO-Handler am Ende
 from . import socketio_backend_frontend
